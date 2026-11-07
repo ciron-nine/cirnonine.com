@@ -355,6 +355,7 @@ if pages_dev_up; then
 else
 open_url "$DASH/workers-and-pages"
 step "Create application → Pages → Connect to Git → GitHub"
+warn "Create application 默认是 Workers 的导入流程：页面上出现 Deploy command 一栏就说明进错了，回去切到 Pages（Pages 标签，或底部的 Looking to deploy Pages? Get started）"
 step "GitHub 授权页安装 Cloudflare Pages：选 Only select repositories → $REPO → Install & Authorize"
 step "回到 Cloudflare，选中 $REPO → Begin setup"
 step "Project name 填 cirnonine（决定 cirnonine.pages.dev 和 PR 预览地址）；Production branch 选 main"
