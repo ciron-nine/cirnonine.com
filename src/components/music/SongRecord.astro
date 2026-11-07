@@ -1,0 +1,87 @@
+---
+import { render, type CollectionEntry } from 'astro:content';
+import { Image } from 'astro:assets';
+import { coverColor } from '../../lib/cover-color';
+import { completionDateTimeAttribute, formatCompletionDate } from '../../lib/completion-date';
+
+interface Props {
+  song: CollectionEntry<'songs'>;
+}
+
+const { song } = Astro.props;
+const { data } = song;
+const datetime = completionDateTimeAttribute(data.added);
+const label = formatCompletionDate(data.added);
+const color = data.cover && (await coverColor(data.cover));
+// 单曲永远没有详情页：长评在音乐页上直接展开
+const LongReview = song.body?.trim() ? (await render(song)).Content : undefined;
+---
+
+<article style={color ? `--cover-color: ${color}` : undefined}>
+  {data.cover && <Image src={data.cover} alt="" width={120} />}
+  <h2>{data.originalTitle}</h2>
+  {data.translatedTitle && <p>{data.translatedTitle}</p>}
+  <dl>
+    <dt>演唱</dt>
+    <dd>{data.singer}</dd>
+    {
+      data.producer && (
+        <>
+          <dt>P主</dt>
+          <dd>{data.producer}</dd>
+        </>
+      )
+    }
+    {
+      data.original && (
+        <>
+          <dt>原曲</dt>
+          <dd>{data.original}</dd>
+        </>
+      )
+    }
+    {
+      data.styles.length > 0 && (
+        <>
+          <dt>风格</dt>
+          <dd>{data.styles.join('、')}</dd>
+        </>
+      )
+    }
+  </dl>
+  {data.audio && <audio controls preload="none" src={data.audio} />}
+  {
+    data.links.length > 0 && (
+      <ul>
+        {data.links.map((link) => (
+          <li>
+            <a href={link.url} rel="noreferrer">
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  <p>{datetime ? <time datetime={datetime}>{label}</time> : label}</p>
+  {data.favorite && <p>心头好</p>}
+  {data.shortReview && <p>{data.shortReview}</p>}
+  {
+    data.quotes.map((lyric) => (
+      <figure>
+        <blockquote>
+          <p>{lyric.original}</p>
+        </blockquote>
+        {lyric.translation && <p>{lyric.translation}</p>}
+      </figure>
+    ))
+  }
+  {
+    LongReview && (
+      <details>
+        <summary>长评</summary>
+        <LongReview />
+      </details>
+    )
+  }
+</article>

@@ -1,0 +1,31 @@
+---
+import { getCollection } from 'astro:content';
+import SongRecord from '../../components/music/SongRecord.astro';
+import { compareCompletionDates } from '../../lib/completion-date';
+
+const songs = (await getCollection('songs')).sort(
+  (a, b) => compareCompletionDates(a.data.added, b.data.added) || a.data.originalTitle.localeCompare(b.data.originalTitle),
+);
+---
+
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>音乐 · cirnonine</title>
+  </head>
+  <body>
+    <main>
+      <h1>音乐</h1>
+      <ol>
+        {
+          songs.map((song) => (
+            <li>
+              <SongRecord song={song} />
+            </li>
+          ))
+        }
+      </ol>
+    </main>
+  </body>
+</html>

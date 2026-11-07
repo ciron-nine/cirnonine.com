@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parse, type HTMLElement } from 'node-html-parser';
 
@@ -16,6 +16,8 @@ export interface BuildResult {
   page(route: string): HTMLElement;
   /** 构建是否生成了这个页面 */
   hasPage(route: string): boolean;
+  /** 构建生成的、以 prefix 开头的所有页面路由，例如 routes('music/') → ['music/'] */
+  routes(prefix: string): string[];
 }
 
 /**
@@ -39,6 +41,13 @@ export function buildFixture(fixture: string): BuildResult {
     },
     hasPage(route) {
       return existsSync(pageFile(route));
+    },
+    routes(prefix) {
+      return readdirSync(`${root}${outDir}`, { recursive: true, encoding: 'utf8' })
+        .filter((file) => file === 'index.html' || file.endsWith('/index.html'))
+        .map((file) => file.slice(0, -'index.html'.length))
+        .filter((route) => route.startsWith(prefix))
+        .sort();
     },
   };
 }

@@ -13,11 +13,12 @@ export type CompletionDate =
 const ACCEPTED_FORMS = '2024-03-15（到日）、2024-03（到月）、2024（到年）或 unknown（不记得，归入很久以前）';
 
 export class CompletionDateError extends Error {
-  constructor(raw: unknown) {
+  /** label 是报错里这个日期的叫法：记录的「完成日期」，单曲的「收录日期」 */
+  constructor(raw: unknown, label = '完成日期') {
     super(
       raw === undefined || raw === null
-        ? `缺少完成日期，写成 ${ACCEPTED_FORMS}`
-        : `完成日期「${raw instanceof Date ? raw.toISOString() : String(raw)}」无法识别，只能写成 ${ACCEPTED_FORMS}`,
+        ? `缺少${label}，写成 ${ACCEPTED_FORMS}`
+        : `${label}「${raw instanceof Date ? raw.toISOString() : String(raw)}」无法识别，只能写成 ${ACCEPTED_FORMS}`,
     );
     this.name = 'CompletionDateError';
   }
@@ -116,13 +117,19 @@ export function completionDateTimeAttribute(date: CompletionDate): string | unde
   }
 }
 
-/** frontmatter 里 completed 字段的校验：交给 parseCompletionDate，报错原样带出。 */
-export const completionDateSchema = z.unknown().transform((raw, ctx): CompletionDate => {
-  try {
-    return parseCompletionDate(raw);
-  } catch (error) {
-    if (!(error instanceof CompletionDateError)) throw error;
-    ctx.addIssue({ code: 'custom', message: error.message });
-    return z.NEVER;
-  }
-});
+/**
+ * frontmatter 里日期字段的校验：交给 parseCompletionDate，报错带出。
+ * label 是报错里这个日期的叫法，默认是记录的完成日期（completed）；单曲的收录日期（added）规则相同。
+ */
+export function completionDateSchema(label = '完成日期') {
+  return z.unknown().transform((raw, ctx): CompletionDate => {
+    try {
+      return parseCompletionDate(raw);
+    } catch (error) {
+      if (!(error instanceof CompletionDateError)) throw error;
+      // 解析器只认得「完成日期」这个叫法；报错时换成这个字段自己的叫法
+      ctx.addIssue({ code: 'custom', message: new CompletionDateError(raw, label).message });
+      return z.NEVER;
+    }
+  });
+}

@@ -1,0 +1,86 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import { Image } from 'astro:assets';
+import { coverColor } from '../../lib/cover-color';
+import { completionDateTimeAttribute, formatCompletionDate } from '../../lib/completion-date';
+import { detailPage } from '../../lib/detail-page';
+
+export async function getStaticPaths() {
+  const novels = await getCollection('visual-novels');
+  return novels
+    .filter((novel) => detailPage(novel)?.kind === 'default')
+    .map((novel) => ({ params: { slug: novel.data.slug }, props: { novel } }));
+}
+
+interface Props {
+  novel: CollectionEntry<'visual-novels'>;
+}
+
+const { novel } = Astro.props;
+const { data } = novel;
+const { Content } = await render(novel);
+const datetime = completionDateTimeAttribute(data.completed);
+const label = formatCompletionDate(data.completed);
+const color = data.cover && (await coverColor(data.cover));
+---
+
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{data.originalTitle} · 视觉小说 · cirnonine</title>
+  </head>
+  <body>
+    <main style={color ? `--cover-color: ${color}` : undefined}>
+      <p><a href="/visual-novels/">视觉小说</a></p>
+      {data.cover && <Image src={data.cover} alt="" width={480} />}
+      <h1>{data.originalTitle}</h1>
+      {data.translatedTitle && <p>{data.translatedTitle}</p>}
+      <dl>
+        <dt>品牌</dt>
+        <dd>{data.brand}</dd>
+        {
+          data.writers.length > 0 && (
+            <>
+              <dt>剧本</dt>
+              <dd>{data.writers.join('、')}</dd>
+            </>
+          )
+        }
+        {
+          data.routes.length > 0 && (
+            <>
+              <dt>完成的路线</dt>
+              <dd>{data.routes.join('、')}</dd>
+            </>
+          )
+        }
+      </dl>
+      <p>{datetime ? <time datetime={datetime}>{label}</time> : label}</p>
+      {data.favorite && <p>心头好</p>}
+      {data.shortReview && <p>{data.shortReview}</p>}
+      <article>
+        <Content />
+      </article>
+      {
+        data.quotes.length > 0 && (
+          <section>
+            <h2>语录</h2>
+            {data.quotes.map((quote) => (
+              <figure>
+                <blockquote>
+                  <p>{quote.original}</p>
+                </blockquote>
+                {quote.translation && <p>{quote.translation}</p>}
+                <figcaption>
+                  {quote.speaker}
+                  {quote.source && <> · {quote.source}</>}
+                </figcaption>
+              </figure>
+            ))}
+          </section>
+        )
+      }
+    </main>
+  </body>
+</html>
