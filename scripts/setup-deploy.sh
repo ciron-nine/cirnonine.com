@@ -283,7 +283,7 @@ banner "cirnonine.com 部署：Cloudflare Pages、域名与 R2"
 stage "开始之前"
 say "检查本机工具和仓库状态。"
 for tool in curl git gh; do
-  command -v "$tool" >/dev/null 2>&1 || { warn "缺少 $tool，请先安装再重跑"; exit 1; }
+  command -v "$tool" >/dev/null 2>&1 || { warn "缺少 ${tool}，请先安装再重跑"; exit 1; }
 done
 if gh auth status >/dev/null 2>&1; then passed "gh 已登录"
 else warn "gh 未登录：最后一步要用它开测试 PR。先运行 gh auth login 再重跑"; exit 1; fi
@@ -406,7 +406,7 @@ if www_redirects; then
 else
   open_url "$DASH/bulk-redirects"
   step "Create Bulk Redirect List → 名字填 www_to_apex → Next"
-  step "Or, manually add URL redirects：Source URL 填 www.$APEX，Target URL 填 https://$APEX，Status 选 301"
+  step "Or, manually add URL redirects：Source URL 填 www.${APEX}，Target URL 填 https://${APEX}，Status 选 301"
   step "展开 Edit parameters，勾选 Preserve query string、Subpath matching、Preserve path suffix、Include subdomains → Next → Next"
   step "Continue to Redirect Rules → Rule name 填 www to apex → 选 www_to_apex → Save and Deploy"
 fi
@@ -466,7 +466,7 @@ open_url "$DASH/r2/overview"
 step "进入 $R2_BUCKET → Upload → 选这个文件，直接放在桶的根目录（不要放进文件夹）"
 wait_for "https://$MEDIA_HOST/$TEST_AUDIO_KEY 能访问" media_serves || true
 note "状态码、跳转、Content-Type：$(http_probe "https://$MEDIA_HOST/$TEST_AUDIO_KEY")"
-note "验证完可以在 R2 里删掉 $TEST_AUDIO_KEY。"
+note "验证完可以在 R2 里删掉 ${TEST_AUDIO_KEY}。"
 pause
 
 # ── 13 ────────────────────────────────────────────────────────────────────
@@ -477,8 +477,8 @@ say "main 最新提交：$MAIN_SHA $(git log -1 --format=%s origin/main)"
 open_url "$DASH/workers-and-pages"
 step "进入 $PAGES_PROJECT → Deployments，看最上面的 Production 部署"
 note "第 5 步的 Save and Deploy 是手动触发的，不能证明 push 会自动部署；要看到一次在建项目之后 push 触发的部署才算。"
-if confirm "最上面的 Production 部署是 $MAIN_SHA，且是建项目之后 push 触发的？"; then
-  passed "push 到 main 自动部署（$MAIN_SHA）"
+if confirm "最上面的 Production 部署是 ${MAIN_SHA}，且是建项目之后 push 触发的？"; then
+  passed "push 到 main 自动部署（${MAIN_SHA}）"
   if apex_up; then passed "https://$APEX 显示最新构建"; else SKIPPED+=("https://$APEX 还打不开"); fi
 else
   SKIPPED+=("下次 push 到 main 后重跑本脚本，确认 Pages 自动部署了那次提交")
@@ -487,7 +487,7 @@ pause
 
 # ── 14 ────────────────────────────────────────────────────────────────────
 stage "验证：PR 出现 Cloudflare 预览地址"
-say "开一个只含空提交的临时 PR（分支 $PREVIEW_BRANCH），看 Cloudflare 是否贴出预览地址。"
+say "开一个只含空提交的临时 PR（分支 ${PREVIEW_BRANCH}），看 Cloudflare 是否贴出预览地址。"
 say "不会改动你本地的分支和工作区。"
 if confirm "推送 $PREVIEW_BRANCH 并开这个临时 PR？"; then
   PREVIEW_SHA=$(git commit-tree "origin/main^{tree}" -p origin/main -m "chore: 部署向导的预览检查（验证后关闭）")
@@ -507,7 +507,7 @@ if [[ -n "${PR_URL:-}" ]]; then
   if wait_for "PR 上出现 Cloudflare 预览地址" pr_has_preview; then
     say "预览地址：$PREVIEW_URL"
   fi
-  if confirm "关闭这个临时 PR 并删除 $PREVIEW_BRANCH？"; then
+  if confirm "关闭这个临时 PR 并删除 ${PREVIEW_BRANCH}？"; then
     if gh pr close "$PR_URL" --repo "$REPO" --delete-branch >/dev/null; then
       passed "已关闭临时 PR 并删除分支"
     else
