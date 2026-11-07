@@ -207,6 +207,8 @@ MEDIA_HOST="media.$APEX"
 DASH="https://dash.cloudflare.com/?to=/:account"
 NAMESILO_DOMAINS="https://www.namesilo.com/account_domains.php"
 PREVIEW_BRANCH="wizard/preview-check"
+# 用来确认站点在线的页面。首页还没做（#1 的后续 ticket），"/" 会 404，先探游戏类别页。
+SITE_PROBE_PATH="/games/"
 CHECKS=()   # 验证通过的项目，最后汇总
 
 # passed "描述" 打印一行 ✓，并记进最后的“验证通过”汇总。
@@ -248,8 +250,8 @@ http_ok() { [[ "$(http_probe "$1")" == 200\ * ]]; }
 ns_on_cloudflare() { dns "$APEX" NS | grep -q '\.ns\.cloudflare\.com\.$'; }
 # DNS 查询成功且没有 DS 记录；查询失败时也返回非零，宁可多提示一次。
 ds_confirmed_absent() { local ds; ds=$(dns "$APEX" DS) && [[ -z "$ds" ]]; }
-pages_dev_up()     { http_ok "https://$PAGES_PROJECT.pages.dev/"; }
-apex_up()          { http_ok "https://$APEX/"; }
+pages_dev_up()     { http_ok "https://$PAGES_PROJECT.pages.dev$SITE_PROBE_PATH"; }
+apex_up()          { http_ok "https://$APEX$SITE_PROBE_PATH"; }
 www_redirects() {
   [[ "$(http_probe "https://www.$APEX/wizard-check?x=1")" == "301 https://$APEX/wizard-check?x=1 "* ]]
 }
@@ -349,25 +351,26 @@ pause
 
 # ── 5 ─────────────────────────────────────────────────────────────────────
 stage "Cloudflare Pages：创建项目并连接 GitHub"
-PAGES_PROJECT=$(_existing PAGES_PROJECT || echo cirnonine)
+PAGES_PROJECT=$(_existing PAGES_PROJECT || echo cirnonine-com)
 if pages_dev_up; then
-  passed "https://$PAGES_PROJECT.pages.dev 已经能打开，跳过"
+  passed "https://$PAGES_PROJECT.pages.dev$SITE_PROBE_PATH 已经能打开，跳过"
 else
 open_url "$DASH/workers-and-pages"
 step "Create application → 先切到页面顶部的 Pages 标签 → Import an existing Git repository"
 warn "Create application 默认停在 Workers 标签，在那里连 GitHub 会进 Workers Builds（要填 Deploy command）。看到 Deploy command 就是进错了，回去切 Pages 标签。"
 step "GitHub 授权页安装 Cloudflare Pages：选 Only select repositories → $REPO → Install & Authorize"
 step "回到 Cloudflare，选中 $REPO → Begin setup"
-step "Project name 填 cirnonine（决定 cirnonine.pages.dev 和 PR 预览地址）；Production branch 选 main"
+step "Project name 保持默认的 cirnonine-com（决定 cirnonine-com.pages.dev 和 PR 预览地址，建好后不能改）；Production branch 选 main"
 step "Framework preset 选 Astro；Build command 填 pnpm build；Build output directory 填 dist"
 step "Environment variables 加一条：PNPM_VERSION = $PNPM_VERSION"
 note "（Cloudflare 的构建镜像不会从 lockfile 推断 pnpm 版本；Node 版本已由仓库里的 .node-version 指定。）"
 step "Save and Deploy，等构建日志结束并显示成功"
-ask PAGES_PROJECT "你填的 Project name（直接回车 = cirnonine）："
-PAGES_PROJECT="${PAGES_PROJECT:-cirnonine}"
+ask PAGES_PROJECT "你填的 Project name（直接回车 = cirnonine-com）："
+PAGES_PROJECT="${PAGES_PROJECT:-cirnonine-com}"
 write_env PAGES_PROJECT "$PAGES_PROJECT"
+note "部署完成页给的 https://<一串字符>.$PAGES_PROJECT.pages.dev 是这一次部署的固定地址；项目地址是 https://$PAGES_PROJECT.pages.dev。"
 note "构建失败时看 Deployments 里那次部署的日志；修好推到 main 会自动重试。"
-wait_for "https://$PAGES_PROJECT.pages.dev 能打开" pages_dev_up || true
+wait_for "https://$PAGES_PROJECT.pages.dev$SITE_PROBE_PATH 能打开" pages_dev_up || true
 note "之后到项目 Settings 的环境变量部分确认 Production 和 Preview 都有 PNPM_VERSION。"
 fi
 pause
@@ -382,7 +385,7 @@ pause
 # ── 7 ─────────────────────────────────────────────────────────────────────
 stage "Pages：绑定 $APEX"
 if apex_up; then
-  passed "https://$APEX 已经能打开，跳过"
+  passed "https://$APEX$SITE_PROBE_PATH 已经能打开，跳过"
 else
   open_url "$DASH/:zone/dns/records"
   step "选 $APEX → DNS Records：如果有 Name 为 $APEX 的 A / AAAA / CNAME 记录，先删掉"
@@ -392,7 +395,7 @@ else
   step "进入 $PAGES_PROJECT → Custom domains → Set up a domain"
   step "输入 $APEX → Continue → Activate domain"
   note "状态变成 Active 要几分钟（要签发证书）。"
-  wait_for "https://$APEX 能打开" apex_up || true
+  wait_for "https://$APEX$SITE_PROBE_PATH 能打开" apex_up || true
 fi
 pause
 
