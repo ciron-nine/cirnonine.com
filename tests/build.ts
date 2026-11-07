@@ -1,0 +1,39 @@
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { parse, type HTMLElement } from 'node-html-parser';
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+
+/** 一次完整 astro build 的测试超时 */
+export const BUILD_TIMEOUT = 120_000;
+
+export interface BuildResult {
+  ok: boolean;
+  /** 构建时 stdout 与 stderr 的合并输出 */
+  output: string;
+  /** 读取生成的页面，例如 page('games/') */
+  page(route: string): HTMLElement;
+}
+
+/**
+ * 用 tests/fixtures/<fixture>/ 作为内容目录跑一次完整的 astro build。
+ * 构建在子进程里进行，和 `pnpm build` 走的是同一条路。
+ */
+export function buildFixture(fixture: string): BuildResult {
+  const contentRoot = `tests/fixtures/${fixture}`;
+  const outDir = `tests/.output/${fixture}`;
+  const result = spawnSync('pnpm', ['exec', 'astro', 'build', '--force', '--outDir', outDir], {
+    cwd: root,
+    env: { ...process.env, CONTENT_ROOT: contentRoot, NO_COLOR: '1', FORCE_COLOR: '0' },
+    encoding: 'utf8',
+  });
+  return {
+    ok: result.status === 0,
+    output: `${result.stdout}\n${result.stderr}`,
+    page(route) {
+      const file = `${root}${outDir}/${route.replace(/\/?$/, '/')}index.html`;
+      return parse(readFileSync(file, 'utf8'));
+    },
+  };
+}

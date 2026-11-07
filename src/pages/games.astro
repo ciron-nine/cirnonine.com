@@ -1,0 +1,44 @@
+---
+import { getCollection } from 'astro:content';
+import {
+  compareCompletionDates,
+  completionDateTimeAttribute,
+  formatCompletionDate,
+} from '../lib/completion-date';
+
+const games = (await getCollection('games')).sort(
+  (a, b) =>
+    compareCompletionDates(a.data.completed, b.data.completed) ||
+    a.data.originalTitle.localeCompare(b.data.originalTitle),
+);
+---
+
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>游戏 · cirnonine</title>
+  </head>
+  <body>
+    <main>
+      <h1>游戏</h1>
+      <ol>
+        {
+          games.map(({ data }) => {
+            const datetime = completionDateTimeAttribute(data.completed);
+            const label = formatCompletionDate(data.completed);
+            return (
+              <li>
+                <h2>{data.originalTitle}</h2>
+                {data.translatedTitle && <p>{data.translatedTitle}</p>}
+                <p>{datetime ? <time datetime={datetime}>{label}</time> : label}</p>
+                {data.favorite && <p>心头好</p>}
+                {data.shortReview && <p>{data.shortReview}</p>}
+              </li>
+            );
+          })
+        }
+      </ol>
+    </main>
+  </body>
+</html>
