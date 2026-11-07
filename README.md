@@ -32,6 +32,19 @@ favorite: true                 # 心头好，可选，默认 false
 - `src/**/*.test.ts`：纯模块的单元测试（例如 `src/lib/completion-date.ts`）。
 - `tests/*.test.ts`：构建产物测试。`tests/build.ts` 的 `buildFixture(name)` 以 `tests/fixtures/<name>/` 作为内容目录（环境变量 `CONTENT_ROOT`）跑一次完整的 `astro build`，输出到 `tests/.output/<name>/`，测试断言生成的 HTML 或构建报错。
 
+## 部署
+
+站点托管在 Cloudflare Pages（ADR-0001），push 到 `main` 自动上线，PR 自动生成预览地址；音频放在 R2，通过 `media.cirnonine.com` 访问（ADR-0003）。后台的一次性设置（Pages 项目、nameserver、域名绑定、`www` 跳转、R2 桶）由向导带着做：
+
+```bash
+scripts/setup-deploy.sh
+```
+
+能从外部检测的步骤（nameserver、DNSSEC、Pages 项目、域名绑定、`www` 跳转、`media` 域名）做完后会自动跳过，中途退出后可以直接重跑；其余步骤会再显示一遍，直接回车即可。它把填过的 nameserver、项目名、桶名写进 `.env`（已在 `.gitignore` 中），重跑时回车沿用。
+
+- Node 版本由 `.node-version` 指定，Cloudflare 构建和本地共用。
+- pnpm 版本写在 `package.json` 的 `packageManager`；Cloudflare 不会从 lockfile 推断 pnpm 版本，Pages 项目里要设环境变量 `PNPM_VERSION` 与之一致，改版本时两边一起改。
+
 ## 依赖说明
 
 - `@emnapi/runtime` 固定在 1.11.3：`pnpm check` 用到的 `@astrojs/astro2tsx` 只有 WASM 版本，它的 peer 依赖会被 pnpm 解析成 rolldown 需要的 2.0 beta，与它自带的 `@emnapi/core` 1.x 不兼容，`astro check` 会直接崩溃。上游修好后可以删掉。

@@ -3,3 +3,4 @@ dist/
 .astro/
 tests/.output/
 .DS_Store
+.env
