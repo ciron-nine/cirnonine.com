@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parse, type HTMLElement } from 'node-html-parser';
 
@@ -14,6 +14,8 @@ export interface BuildResult {
   output: string;
   /** 读取生成的页面，例如 page('games/') */
   page(route: string): HTMLElement;
+  /** 构建是否生成了这个页面 */
+  hasPage(route: string): boolean;
 }
 
 /**
@@ -28,12 +30,15 @@ export function buildFixture(fixture: string): BuildResult {
     env: { ...process.env, CONTENT_ROOT: contentRoot, NO_COLOR: '1', FORCE_COLOR: '0' },
     encoding: 'utf8',
   });
+  const pageFile = (route: string) => `${root}${outDir}/${route.replace(/\/?$/, '/')}index.html`;
   return {
     ok: result.status === 0,
     output: `${result.stdout}\n${result.stderr}`,
     page(route) {
-      const file = `${root}${outDir}/${route.replace(/\/?$/, '/')}index.html`;
-      return parse(readFileSync(file, 'utf8'));
+      return parse(readFileSync(pageFile(route), 'utf8'));
+    },
+    hasPage(route) {
+      return existsSync(pageFile(route));
     },
   };
 }

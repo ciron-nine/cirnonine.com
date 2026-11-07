@@ -27,6 +27,12 @@ describe('格式不对的游戏记录让构建失败', () => {
       file: 'sanabi',
       message: /游戏记录没有这些字段.*platform.*playtime/,
     },
+    {
+      problem: '引用了不存在的系列',
+      fixture: 'unknown-series',
+      file: 'hotline-miami-2.md',
+      message: /引用了不存在的系列「hotline-miammi」.*已有的系列：hotline-miami/,
+    },
   ])(
     '$problem',
     ({ fixture, file, message }) => {
