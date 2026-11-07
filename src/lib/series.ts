@@ -5,7 +5,6 @@ type Series = CollectionEntry<'series'>;
 /** 任何类别的记录，只要能引用系列 */
 interface SeriesMember {
   id: string;
-  filePath?: string;
   data: { series?: { id: string } };
 }
 
@@ -16,7 +15,7 @@ export type StackedEntry<R> =
 
 /**
  * 把已经排好序的记录按系列叠起来。一摞出现在它最靠前的成员所在的位置，摞内保持原来的顺序。
- * 记录引用了不存在的系列时抛错，让构建失败。
+ * 系列引用在内容校验时已经检查过（content.config.ts），这里拿到的都是存在的系列。
  */
 export function stackBySeries<R extends SeriesMember>(records: R[], allSeries: Series[]): StackedEntry<R>[] {
   const seriesById = new Map(allSeries.map((s) => [s.id, s]));
@@ -24,13 +23,6 @@ export function stackBySeries<R extends SeriesMember>(records: R[], allSeries: S
   for (const record of records) {
     const ref = record.data.series;
     if (!ref) continue;
-    if (!seriesById.has(ref.id)) {
-      const known = [...seriesById.keys()].join('、') || '（还没有定义任何系列）';
-      throw new Error(
-        `记录 ${record.filePath ?? record.id} 引用了不存在的系列「${ref.id}」。` +
-          `系列定义在 series/<id>.yaml，已有的系列：${known}`,
-      );
-    }
     members.set(ref.id, [...(members.get(ref.id) ?? []), record]);
   }
 

@@ -31,7 +31,8 @@ describe('格式不对的游戏记录让构建失败', () => {
       problem: '引用了不存在的系列',
       fixture: 'unknown-series',
       file: 'hotline-miami-2.md',
-      message: /引用了不存在的系列「hotline-miammi」.*已有的系列：hotline-miami/,
+      // 在内容校验时就报错，作为 series 字段的错误，不依赖哪个页面用到了系列
+      message: /^\s*series: 引用了不存在的系列「hotline-miammi」.*已有的系列：hotline-miami/m,
     },
   ])(
     '$problem',
