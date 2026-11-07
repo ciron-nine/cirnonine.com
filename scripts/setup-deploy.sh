@@ -420,6 +420,8 @@ else
   open_url "$DASH/:zone/dns/records"
   step "选 $APEX → Add record：Type A，Name www，IPv4 address 192.0.2.1，Proxy status 打开（橙色云）→ Save"
   note "（192.0.2.1 只是占位地址：请求在 Cloudflare 边缘就被跳转了。已有 www 记录就改成这样。）"
+  note "www 用的是站点的 Universal SSL 证书（裸域名用的是 Pages 自己签的）。刚加站点时它要一段时间才下发到所有边缘 IP，"
+  note "期间 www 时好时坏、握手失败（curl 报 35）。到 SSL/TLS → Edge Certificates 看 Universal 证书是否 Active，等它下发完即可。"
   wait_for "https://www.$APEX/… 301 跳到 https://$APEX/…（保留路径和参数）" www_redirects || true
 fi
 pause
