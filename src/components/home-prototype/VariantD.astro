@@ -4,7 +4,7 @@
  * 首页是一本方形小册子，一页一块方形，桌面上两页一摊（中间有折缝），手机上一页一页往下翻。
  * 第一摊：封面（头像，可以翻到旧版封面）｜ 收录曲目（四个类别和它们的原名）
  * 第二摊：内页文字（自我介绍）｜ 摘录（随机语录）
- * 第三摊：最近收录（最近 5 条）｜ 版权页（字体、说明）
+ * 第三摊：最近完成（最近 5 条）｜ 版权页（字体、说明）
  */
 import type { HomeData } from './home-data';
 import AvatarPlaceholder from './AvatarPlaceholder.astro';
@@ -97,8 +97,8 @@ const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.l
   </div>
 
   <div class="spread">
-    <section class="page credits" aria-label="最近收录">
-      <h2 class="label">最近收录</h2>
+    <section class="page credits" aria-label="最近完成">
+      <h2 class="label">最近完成</h2>
       <dl>
         {
           data.recent.map((record) => (
@@ -390,7 +390,7 @@ const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.l
     margin-inline: auto;
   }
 
-  /* 最近收录：像内页最后的录音信息 */
+  /* 最近完成：像内页最后的录音信息 */
   .credits dl {
     display: grid;
     gap: 0.9rem;

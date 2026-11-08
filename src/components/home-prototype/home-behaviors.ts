@@ -4,7 +4,7 @@
  * - [data-random-one]：里面的 [data-random-item] 随机留一个。
  * - [data-avatar-history]：里面的 [data-avatar-slide] 一次显示一个，第一个是现在的头像；
  *   [data-avatar-step="1"] 往回翻（更早），[data-avatar-step="-1"] 往后翻（更近）；
- *   [data-avatar-position] 显示「第几个 / 共几个」，[data-avatar-caption] 显示当前头像的说明。
+ *   [data-avatar-position] 显示「第几个 / 共几个」。
  */
 
 export function pickRandomQuotes() {
