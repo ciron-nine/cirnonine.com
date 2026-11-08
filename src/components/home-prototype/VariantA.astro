@@ -1,0 +1,363 @@
+---
+/**
+ * PROTOTYPE 变体 A：文字自画像（参考 Feltron 首页）。
+ * 整页就是一大段第一人称的话：作品的原名就是链接，「玩完了」「读完了」这些动词是四个类别的入口，
+ * 悬停一个动词时其余类别的作品变淡。头像嵌在第一句话里，点它旁边的箭头往回翻。
+ * 没有图片网格、没有卡片，只有字。
+ */
+import type { HomeData, HomeRecord } from './home-data';
+import AvatarPlaceholder from './AvatarPlaceholder.astro';
+import RandomQuote from './RandomQuote.astro';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+const [hello, ...rest] = data.intro;
+
+/** 同一系列的几部挨在一起，用斜线连成一组，组之间用顿号 */
+function groupBySeries(records: HomeRecord[]): HomeRecord[][] {
+  const groups: HomeRecord[][] = [];
+  const bySeries = new Map<string, HomeRecord[]>();
+  for (const record of records) {
+    if (!record.series) {
+      groups.push([record]);
+    } else if (bySeries.has(record.series)) {
+      bySeries.get(record.series)!.push(record);
+    } else {
+      const group = [record];
+      bySeries.set(record.series, group);
+      groups.push(group);
+    }
+  }
+  return groups;
+}
+
+const caption = (r: HomeRecord, label: string) =>
+  [r.translatedTitle, label, r.dateLabel, r.favorite ? '心头好' : undefined].filter(Boolean).join(' · ');
+---
+
+<article class="portrait">
+  <p class="lede">
+    <span class="avatar-inline" data-avatar-history>
+      {
+        data.avatars.map((avatar) => (
+          <span class="slide" data-avatar-slide>
+            <AvatarPlaceholder avatar={avatar} class="face" />
+          </span>
+        ))
+      }
+      <span class="avatar-steps">
+        <button type="button" data-avatar-step="1" aria-label="往回翻一个头像">‹</button>
+        <button type="button" data-avatar-step="-1" aria-label="往后翻一个头像">›</button>
+      </span>
+    </span>
+    <span class="voice">{hello}</span>
+  </p>
+
+  <p class="material">
+    {
+      data.categories.map((category, ci) => (
+        <span class="clause" data-cat={category.key}>
+          <span class="voice">{ci === 0 ? '我' : ci === data.categories.length - 1 ? '；还' : '；'}</span>
+          <a class="door" href={category.href} data-cat={category.key} data-caption={`${category.label} · ${category.records.length}`}>
+            {category.verb}
+            <sup>{category.records.length}</sup>
+          </a>
+          {groupBySeries(category.records).map((group, gi) => (
+            <>
+              {gi > 0 && <span class="sep">、</span>}
+              <span class="group">
+                {group.map((record, ri) => (
+                  <>
+                    {ri > 0 && <span class="slash"> / </span>}
+                    <a
+                      class:list={['work', { favorite: record.favorite }]}
+                      href={record.href}
+                      lang={record.lang}
+                      data-cat={category.key}
+                      data-caption={caption(record, category.label)}
+                    >
+                      {record.originalTitle}
+                    </a>
+                  </>
+                ))}
+              </span>
+            </>
+          ))}
+        </span>
+      ))
+    }
+    <span class="voice">。</span>
+  </p>
+
+  <p class="caption" data-portrait-caption aria-live="polite">
+    <span class="hint">把指针停在一个名字上</span>
+  </p>
+
+  {rest.map((paragraph) => <p class="aside voice">{paragraph}</p>)}
+
+  <section class="quote" aria-label="随机一句语录">
+    <p class="voice small">随手翻到的一句：</p>
+    <RandomQuote quotes={data.quotes} />
+  </section>
+
+  <p class="recent voice" aria-label="最近的记录">
+    最近记下的五个是
+    {
+      data.recent.map((record, i) => (
+        <>
+          {i > 0 && (i === data.recent.length - 1 ? '，和' : '、')}
+          <a class="work" href={record.href} lang={record.lang}>
+            {record.originalTitle}
+          </a>
+          <span class="date">
+            {record.datetime ? <time datetime={record.datetime}>{record.dateLabel}</time> : record.dateLabel}
+          </span>
+        </>
+      ))
+    }
+    。
+  </p>
+
+  <p class="avatar-note voice small">
+    用过的头像，从现在往回：
+    {
+      data.avatars.map((avatar, i) => (
+        <>
+          {i > 0 && ' ← '}
+          {avatar.from.record ? (
+            <a class="work" href={avatar.from.record.href} title={avatar.from.title}>
+              {avatar.name}
+            </a>
+          ) : (
+            <span title={avatar.from.title}>{avatar.name}</span>
+          )}
+        </>
+      ))
+    }
+    （占位）
+  </p>
+</article>
+
+<script>
+  /** 悬停或聚焦一个名字时，把它的译名、类别、日期写到下方那一行 */
+  document.addEventListener('astro:page-load', () => {
+    const portrait = document.querySelector('.portrait');
+    const caption = portrait?.querySelector('[data-portrait-caption]');
+    if (!portrait || !caption) return;
+    const hint = caption.innerHTML;
+    const show = (event: Event) => {
+      const link = (event.target as HTMLElement).closest<HTMLElement>('[data-caption]');
+      caption.innerHTML = '';
+      if (link) caption.textContent = link.dataset.caption ?? '';
+      else caption.innerHTML = hint;
+    };
+    portrait.addEventListener('pointerover', show);
+    portrait.addEventListener('focusin', show);
+  });
+</script>
+
+<style>
+  .portrait {
+    max-width: 68rem;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 6vw, 5rem) 0 2rem;
+  }
+
+  .voice {
+    font-family: var(--proto-voice);
+  }
+
+  .lede,
+  .material {
+    margin: 0;
+    font-size: clamp(1.5rem, 0.9rem + 2.8vw, 3.25rem);
+    line-height: 1.3;
+    text-wrap: pretty;
+  }
+
+  .lede {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    margin-bottom: 0.4em;
+  }
+
+  /* 头像嵌在第一句话里，和字一样高一点点 */
+  .avatar-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15em;
+  }
+
+  .slide :global(.face) {
+    display: grid;
+    width: 1.3em;
+  }
+
+  .slide[hidden] {
+    display: none;
+  }
+
+  .avatar-steps {
+    display: inline-flex;
+    flex-direction: column;
+  }
+
+  .avatar-steps button {
+    padding: 0 0.3em;
+    font: inherit;
+    font-size: 0.4em;
+    line-height: 1.2;
+    color: var(--shell-muted);
+    cursor: pointer;
+    background: none;
+    border: 0;
+  }
+
+  .avatar-steps button:disabled {
+    cursor: default;
+    opacity: 0.25;
+  }
+
+  .material .voice,
+  .sep,
+  .slash {
+    color: var(--shell-muted);
+  }
+
+  .slash {
+    font-size: 0.6em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .work {
+    font-family: var(--proto-title);
+    transition: opacity 0.2s;
+  }
+
+  .work:lang(ja) {
+    font-family: var(--proto-title-ja);
+  }
+
+  .work:hover,
+  .work:focus-visible {
+    text-decoration: underline;
+    text-decoration-thickness: 0.06em;
+    text-underline-offset: 0.15em;
+  }
+
+  .favorite::after {
+    content: '＊';
+    font-size: 0.5em;
+    vertical-align: super;
+  }
+
+  /* 四个类别的入口：动词本身，下面一道粗线，右上角是件数 */
+  .door {
+    font-family: var(--proto-voice);
+    white-space: nowrap;
+    border-bottom: 0.08em solid currentColor;
+  }
+
+  .door sup {
+    margin-left: 0.1em;
+    font-family: var(--proto-mono);
+    font-size: 0.4em;
+  }
+
+  .door:hover,
+  .door:focus-visible {
+    color: var(--shell-bg);
+    background: var(--shell-fg);
+    outline: none;
+  }
+
+  /* 悬停一个入口时，其余类别的作品退后 */
+  .material:has(.door:hover, .door:focus-visible) .clause:not(:has(.door:hover, .door:focus-visible)) {
+    opacity: 0.18;
+  }
+
+  .clause {
+    transition: opacity 0.25s;
+  }
+
+  /* 悬停时的说明：能悬停的设备上固定在左下角，触屏上不需要 */
+  .caption {
+    display: none;
+  }
+
+  @media (hover: hover) {
+    .caption {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      z-index: 10;
+      display: block;
+      max-width: calc(50vw - 9rem);
+      margin: 0;
+      padding: 0.3rem 0.6rem;
+      font-family: var(--proto-voice);
+      font-size: 0.875rem;
+      background: var(--shell-bg);
+      border: 1px solid color-mix(in srgb, var(--shell-fg) 30%, transparent);
+    }
+  }
+
+  .hint {
+    color: var(--shell-muted);
+  }
+
+  .material {
+    margin-bottom: 3rem;
+  }
+
+  .aside {
+    max-width: 30em;
+    margin: 0 0 4rem;
+    font-size: clamp(1.0625rem, 0.9rem + 0.6vw, 1.375rem);
+    line-height: 1.8;
+  }
+
+  .small {
+    font-size: 0.875rem;
+    color: var(--shell-muted);
+  }
+
+  .quote {
+    margin: 0 0 4rem;
+  }
+
+  .quote .small {
+    margin: 0 0 1rem;
+  }
+
+  .recent {
+    max-width: 40em;
+    margin: 0 0 1.5rem;
+    font-size: 1.0625rem;
+    line-height: 2;
+  }
+
+  .recent .work {
+    border-bottom: 1px solid var(--shell-muted);
+  }
+
+  .date {
+    margin-left: 0.25em;
+    font-size: 0.75em;
+    color: var(--shell-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .work,
+    .clause {
+      transition: none;
+    }
+  }
+</style>

@@ -1,0 +1,65 @@
+---
+/** PROTOTYPE：单曲的语录是一句歌词，像歌词本里的一行：明朝体、居中、下面一条细线和曲名 */
+import type { HomeQuote } from '../home-data';
+
+interface Props {
+  quote: HomeQuote;
+}
+const { quote } = Astro.props;
+---
+
+<figure class="song-quote">
+  <blockquote>
+    <p class="original" lang={quote.lang}>{quote.original}</p>
+    {quote.translation && <p class="translation">{quote.translation}</p>}
+  </blockquote>
+  <figcaption>
+    <a href={quote.record.href} lang={quote.record.lang}>{quote.record.originalTitle}</a>
+    {quote.placeholder && <span class="placeholder">占位</span>}
+  </figcaption>
+</figure>
+
+<style>
+  .song-quote {
+    max-width: 32rem;
+    margin: 0;
+    text-align: center;
+  }
+
+  blockquote {
+    margin: 0;
+  }
+
+  .original {
+    margin: 0;
+    font-family: var(--proto-title-ja);
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    letter-spacing: 0.12em;
+  }
+
+  .translation {
+    margin: 0.25rem 0 0;
+    font-family: var(--proto-voice);
+    font-size: 0.9375rem;
+    color: var(--shell-muted);
+  }
+
+  figcaption {
+    display: inline-block;
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--shell-muted);
+    border-top: 1px solid currentColor;
+  }
+
+  figcaption a {
+    color: inherit;
+  }
+
+  .placeholder {
+    margin-left: 0.5em;
+    padding: 0 0.3em;
+    border: 1px dashed currentColor;
+  }
+</style>

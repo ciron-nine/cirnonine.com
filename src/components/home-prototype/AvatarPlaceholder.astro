@@ -1,0 +1,50 @@
+---
+/** PROTOTYPE：头像占位，一块带颗粒的灰色方块，上面印角色名的头一两个字。站长给图后换成真图。 */
+import type { Avatar } from './home-data';
+
+interface Props {
+  avatar: Avatar;
+  class?: string;
+}
+const { avatar, class: className } = Astro.props;
+const chars = Array.from(avatar.name);
+const glyph = chars.length <= 2 ? avatar.name : chars[0];
+// 每个头像一个不同的灰度，翻页时看得出换了一张
+const shade = 30 + ([...avatar.name].reduce((sum, c) => sum + c.codePointAt(0)!, 0) % 45);
+---
+
+<span
+  class:list={['avatar', className]}
+  role="img"
+  aria-label={`头像（占位）：${avatar.name}`}
+  style={`--avatar-shade: ${shade}%`}
+>
+  <span aria-hidden="true">{glyph}</span>
+</span>
+
+<style>
+  .avatar {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    overflow: hidden;
+    font-family: var(--proto-title-ja);
+    color: hsl(0 0% 96%);
+    background: hsl(0 0% var(--avatar-shade));
+    container-type: inline-size;
+  }
+
+  .avatar::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
+  .avatar > span {
+    font-size: 42cqi;
+    line-height: 1;
+  }
+</style>

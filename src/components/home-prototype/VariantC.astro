@@ -1,0 +1,455 @@
+---
+/**
+ * PROTOTYPE 变体 C：自问自答。
+ * 首页是一份我自己问自己的访谈：左边一列编号的问题（桌面上随滚动停住），右边是回答。
+ * 四个类别、最近记录、随机语录、头像史都是某一个问题的答案，按问题的顺序出现。
+ */
+import type { HomeData } from './home-data';
+import AvatarPlaceholder from './AvatarPlaceholder.astro';
+import RandomQuote from './RandomQuote.astro';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+const [hello, about, why] = data.intro;
+
+const UNIT = { games: '款游戏', 'visual-novels': '部视觉小说', anime: '部动画', songs: '首歌' };
+const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
+---
+
+<article class="interview">
+  <header>
+    <p class="kicker">自问自答</p>
+    <h1 class="voice">关于我，<br />我自己问了自己六个问题。</h1>
+  </header>
+
+  <ol class="qa">
+    <li>
+      <h2 class="q"><span class="n">01</span>你是谁？</h2>
+      <div class="a voice">
+        <p class="big">{hello}</p>
+        <p>{about}</p>
+      </div>
+    </li>
+
+    <li>
+      <h2 class="q"><span class="n">02</span>头像上的是谁？</h2>
+      <div class="a voice avatar-answer" data-avatar-history>
+        {
+          data.avatars.map((avatar, i) => (
+            <figure class="slide" data-avatar-slide>
+              <AvatarPlaceholder avatar={avatar} class="face" />
+              <figcaption>
+                <p class="who">
+                  {i === 0 ? '现在是' : `往前第 ${i} 个是`}
+                  <strong>{avatar.name}</strong>。
+                </p>
+                <p class="from">
+                  出自
+                  {avatar.from.record ? (
+                    <a href={avatar.from.record.href} lang={avatar.from.record.lang}>
+                      {avatar.from.title}
+                    </a>
+                  ) : (
+                    <span>{avatar.from.title}</span>
+                  )}
+                  {avatar.from.record ? '——它也在这里。' : '。'}
+                </p>
+              </figcaption>
+            </figure>
+          ))
+        }
+        <p class="steps">
+          <button type="button" data-avatar-step="1">往回翻</button>
+          <button type="button" data-avatar-step="-1">往后翻</button>
+          <span class="position" data-avatar-position></span>
+          <span class="placeholder">占位</span>
+        </p>
+      </div>
+    </li>
+
+    <li>
+      <h2 class="q"><span class="n">03</span>这里都放了些什么？</h2>
+      <div class="a">
+        <p class="voice">只放从头走到尾的。到现在一共 {data.total} 个：</p>
+        <ul class="doors">
+          {
+            data.categories.map((category) => (
+              <li>
+                <a class="door" href={category.href}>
+                  <span class="count">{category.records.length}</span>
+                  <span class="unit voice">{UNIT[category.key]}</span>
+                  <span class="arrow" aria-hidden="true">
+                    →
+                  </span>
+                </a>
+                <p class="examples">
+                  {category.records.slice(0, 3).map((r, i) => (
+                    <>
+                      {i > 0 && <span class="sep"> / </span>}
+                      <span lang={r.lang}>{r.originalTitle}</span>
+                    </>
+                  ))}
+                  {category.records.length > 3 && <span class="sep"> …</span>}
+                </p>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </li>
+
+    <li>
+      <h2 class="q"><span class="n">04</span>最近完成的是什么？</h2>
+      <div class="a">
+        <ol class="recent">
+          {
+            data.recent.map((record) => (
+              <li>
+                <a href={record.href} lang={record.lang} class="title">
+                  {record.originalTitle}
+                </a>
+                {record.translatedTitle && <span class="translated">{record.translatedTitle}</span>}
+                <span class="meta voice">
+                  {CATEGORY_LABEL[record.category]} ·{' '}
+                  {record.datetime ? <time datetime={record.datetime}>{record.dateLabel}</time> : record.dateLabel}
+                </span>
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+    </li>
+
+    <li>
+      <h2 class="q"><span class="n">05</span>有没有一句话，一直记得？</h2>
+      <div class="a">
+        <RandomQuote quotes={data.quotes} />
+        <p class="voice note">每次打开，换一句。</p>
+      </div>
+    </li>
+
+    <li>
+      <h2 class="q"><span class="n">06</span>为什么不打分？</h2>
+      <div class="a voice">
+        <p>{why}</p>
+      </div>
+    </li>
+  </ol>
+</article>
+
+<style>
+  .interview {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: clamp(1rem, 5vw, 4rem) 0 2rem;
+  }
+
+  .voice {
+    font-family: var(--proto-voice);
+  }
+
+  .kicker {
+    margin: 0 0 0.5rem;
+    font-family: var(--proto-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: var(--shell-muted);
+  }
+
+  h1 {
+    margin: 0 0 clamp(2rem, 6vw, 4rem);
+    font-size: clamp(1.75rem, 1.2rem + 2.5vw, 3rem);
+    font-weight: 400;
+    line-height: 1.3;
+  }
+
+  .qa {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .qa > li {
+    display: grid;
+    grid-template-columns: minmax(10rem, 16rem) 1fr;
+    gap: 1rem 3rem;
+    padding: 2rem 0 2.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--shell-fg) 25%, transparent);
+  }
+
+  .q {
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .n {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-family: var(--proto-mono);
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--shell-muted);
+  }
+
+  .n::before {
+    content: 'Q.';
+  }
+
+  .a {
+    min-width: 0;
+    font-size: 1.125rem;
+    line-height: 1.85;
+  }
+
+  .a p {
+    margin: 0 0 0.75em;
+  }
+
+  .big {
+    font-size: clamp(1.5rem, 1rem + 2vw, 2.25rem);
+    line-height: 1.3;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  /* 02 头像史 */
+  .avatar-answer .slide {
+    display: flex;
+    gap: 1.25rem;
+    align-items: end;
+    margin: 0 0 1rem;
+  }
+
+  .avatar-answer .slide[hidden] {
+    display: none;
+  }
+
+  .slide :global(.face) {
+    flex: none;
+    width: clamp(6rem, 22vw, 9rem);
+  }
+
+  .who {
+    font-size: 1.25rem;
+  }
+
+  .who strong {
+    margin: 0 0.15em;
+    font-weight: 400;
+    border-bottom: 2px solid currentColor;
+  }
+
+  .from {
+    font-size: 0.9375rem;
+    color: var(--shell-muted);
+  }
+
+  .steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .steps button {
+    padding: 0.2rem 0.75rem;
+    font: inherit;
+    font-size: 0.875rem;
+    color: inherit;
+    cursor: pointer;
+    background: none;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+  }
+
+  .steps button:disabled {
+    cursor: default;
+    opacity: 0.3;
+  }
+
+  .position {
+    font-family: var(--proto-mono);
+    font-size: 0.75rem;
+    color: var(--shell-muted);
+  }
+
+  .placeholder {
+    padding: 0 0.3em;
+    font-size: 0.75rem;
+    color: var(--shell-muted);
+    border: 1px dashed currentColor;
+  }
+
+  /* 03 四个类别的入口：大号数字是门，下面是这扇门后面的几样东西 */
+  .doors {
+    display: grid;
+    gap: 0;
+    padding: 0;
+    margin: 1.25rem 0 0;
+    list-style: none;
+  }
+
+  .doors li {
+    padding: 0.75rem 0;
+    border-bottom: 1px dashed color-mix(in srgb, var(--shell-fg) 30%, transparent);
+  }
+
+  .door {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    text-decoration: none;
+  }
+
+  .count {
+    min-width: 2ch;
+    font-family: var(--proto-mono);
+    font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .unit {
+    font-size: clamp(1.125rem, 1rem + 0.8vw, 1.5rem);
+  }
+
+  .arrow {
+    margin-left: auto;
+    transition: transform 0.2s;
+  }
+
+  .door:hover .arrow,
+  .door:focus-visible .arrow {
+    transform: translateX(0.4rem);
+  }
+
+  .door:hover .unit,
+  .door:focus-visible .unit {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .examples {
+    margin: 0.25rem 0 0 !important;
+    font-family: var(--proto-title);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--shell-muted);
+  }
+
+  .examples [lang='ja'] {
+    font-family: var(--proto-title-ja);
+  }
+
+  .sep {
+    opacity: 0.6;
+  }
+
+  /* 04 最近 */
+  .recent {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    counter-reset: recent;
+  }
+
+  .recent li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.75rem;
+    align-items: baseline;
+    padding: 0.4rem 0;
+    counter-increment: recent;
+  }
+
+  .recent li::before {
+    width: 1.5rem;
+    font-family: var(--proto-mono);
+    font-size: 0.75rem;
+    color: var(--shell-muted);
+    content: counter(recent, decimal-leading-zero);
+  }
+
+  .title {
+    font-family: var(--proto-title);
+    font-size: 1.25rem;
+    text-decoration: none;
+  }
+
+  .title:lang(ja) {
+    font-family: var(--proto-title-ja);
+  }
+
+  .title:hover,
+  .title:focus-visible {
+    text-decoration: underline;
+  }
+
+  .translated {
+    font-size: 0.875rem;
+    color: var(--shell-muted);
+  }
+
+  .meta {
+    margin-left: auto;
+    font-size: 0.8125rem;
+    color: var(--shell-muted);
+  }
+
+  .note {
+    margin-top: 0.75rem !important;
+    font-size: 0.875rem;
+    color: var(--shell-muted);
+  }
+
+  @media (max-width: 40rem) {
+    .qa > li {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      padding: 1.5rem 0 2rem;
+    }
+
+    .q {
+      position: static;
+      font-size: 1.0625rem;
+    }
+
+    .n {
+      display: inline;
+      margin: 0 0.5rem 0 0;
+    }
+
+    .recent li {
+      display: grid;
+      grid-template-columns: 2.25rem 1fr;
+    }
+
+    .recent li::before {
+      grid-row: 1 / span 3;
+      padding-top: 0.35rem;
+    }
+
+    .recent li > * {
+      grid-column: 2;
+    }
+
+    .meta {
+      margin-left: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .arrow {
+      transition: none;
+    }
+  }
+</style>

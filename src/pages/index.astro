@@ -1,10 +1,65 @@
 ---
+/**
+ * PROTOTYPE（issue #9）：首页的三个变体，用 ?variant=A / C / D 切换，开发环境底部有切换条。
+ * 问题：首页应该长什么样？A 文字自画像 / C 自问自答 / D 专辑内页，都用真实种子数据。
+ * 选定后把胜出的方案重写进正式首页，落选的变体和切换条只留在 prototype/home 分支。
+ */
+import 'lxgw-wenkai-screen-webfont/lxgwwenkaigbscreen.css';
+import '@fontsource/klee-one/400.css';
+import '@fontsource/klee-one/600.css';
+import '@fontsource/shippori-mincho/400.css';
+import '@fontsource/instrument-serif/400.css';
+import '@fontsource/ibm-plex-mono/400.css';
 import Shell from '../components/shell/Shell.astro';
+import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
+import { loadHomeData } from '../components/home-prototype/home-data';
+import VariantA from '../components/home-prototype/VariantA.astro';
+import VariantC from '../components/home-prototype/VariantC.astro';
+import VariantD from '../components/home-prototype/VariantD.astro';
+
+const data = await loadHomeData();
 ---
 
-<!-- 占位首页：正式首页要在 A/C/D 三个原型里选定后再做，这里只让站标有个去处 -->
 <Shell title="cirnonine">
-  <main>
-    <h1>cirnonine</h1>
+  <main data-prototype-variants>
+    <div data-variant="A" data-variant-name="文字自画像">
+      <VariantA data={data} />
+    </div>
+    <div data-variant="C" data-variant-name="自问自答" hidden>
+      <VariantC data={data} />
+    </div>
+    <div data-variant="D" data-variant-name="专辑内页" hidden>
+      <VariantD data={data} />
+    </div>
   </main>
+  {import.meta.env.DEV && <PrototypeSwitcher />}
 </Shell>
+
+<script>
+  import { showCurrentVariant } from '../components/prototype/variants';
+  import { pickRandomQuotes, setUpAvatarHistories } from '../components/home-prototype/home-behaviors';
+
+  document.addEventListener('astro:page-load', () => {
+    if (!document.querySelector('[data-prototype-variants]')) return;
+    showCurrentVariant();
+    pickRandomQuotes();
+    setUpAvatarHistories();
+  });
+</script>
+
+<style is:global>
+  [data-prototype-variants] {
+    /* 我的声音：霞鹜文楷，日文部分落到同一母本的 Klee One */
+    --proto-voice: 'LXGW WenKai Screen', 'Klee One', serif;
+    /* 作品的原名：拉丁字母用 Instrument Serif，日文用 Shippori Mincho */
+    --proto-title: 'Instrument Serif', 'Shippori Mincho', 'Songti SC', serif;
+    --proto-title-ja: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+    --proto-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    text-autospace: normal;
+  }
+
+  [data-prototype-variants] > [hidden] {
+    display: none;
+  }
+</style>
