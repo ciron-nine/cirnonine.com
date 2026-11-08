@@ -1,4 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
+import { testAudio } from './test-audio';
+
+test.beforeEach(async ({ page }) => {
+  await page.route('https://media.cirnonine.com/**', (route) =>
+    route.fulfill({ contentType: 'audio/wav', body: testAudio() }),
+  );
+});
 
 /** 全站背景音乐的 audio 此刻的样子 */
 function backgroundMusic(page: Page) {

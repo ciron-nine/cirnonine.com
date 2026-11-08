@@ -12,8 +12,11 @@ interface Props {
 
 const { title } = Astro.props;
 
-/** 全站背景音乐。暂用仓库里的占位音频，正式的音频放到 R2（media.cirnonine.com，ADR-0003） */
-const SITE_MUSIC = '/audio/placeholder-site-music.wav';
+/**
+ * 全站背景音乐：Malachi Bailey「Under the stars」，放在 R2（ADR-0003）。
+ * 换曲时上传成新文件名再改这里，不要覆盖旧文件，免得 Cloudflare 缓存还在给旧的。
+ */
+const SITE_MUSIC = 'https://media.cirnonine.com/background-music/under-the-stars.m4a';
 
 const NAV = [
   { href: '/games/', label: '游戏' },
