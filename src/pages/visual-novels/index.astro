@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import Shell from '../../components/shell/Shell.astro';
+import { CATEGORY_MUSIC } from '../../lib/background-music';
 import VisualNovelRecord from '../../components/visual-novels/VisualNovelRecord.astro';
 import { compareCompletionDates } from '../../lib/completion-date';
 import { stackBySeries } from '../../lib/series';
@@ -13,7 +14,7 @@ const novels = (await getCollection('visual-novels')).sort(
 const entries = stackBySeries(novels, await getCollection('series'));
 ---
 
-<Shell title="视觉小说 · cirnonine">
+<Shell title="视觉小说 · cirnonine" music={{ category: CATEGORY_MUSIC['visual-novels'] }}>
   <main>
     <h1>视觉小说</h1>
     <ol>

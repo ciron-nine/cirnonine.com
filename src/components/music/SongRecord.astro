@@ -49,7 +49,14 @@ const LongReview = song.body?.trim() ? (await render(song)).Content : undefined;
       )
     }
   </dl>
-  {data.audio && <audio controls preload="none" src={data.audio} />}
+  {
+    // 点播交给外壳里常驻的播放器（换页不中断）；按下的状态由播放器同步
+    data.audio && (
+      <button type="button" data-request={data.audio} data-request-title={data.originalTitle} aria-pressed="false">
+        播放
+      </button>
+    )
+  }
   {
     data.links.length > 0 && (
       <ul>

@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import Shell from '../../components/shell/Shell.astro';
+import { CATEGORY_MUSIC } from '../../lib/background-music';
 import AnimeRecord from '../../components/anime/AnimeRecord.astro';
 import { compareCompletionDates } from '../../lib/completion-date';
 import { stackBySeries } from '../../lib/series';
@@ -13,7 +14,7 @@ const allAnime = (await getCollection('anime')).sort(
 const entries = stackBySeries(allAnime, await getCollection('series'));
 ---
 
-<Shell title="动画 · cirnonine">
+<Shell title="动画 · cirnonine" music={{ category: CATEGORY_MUSIC.anime }}>
   <main>
     <h1>动画</h1>
     <ol>

@@ -12,6 +12,8 @@ export interface BuildResult {
   ok: boolean;
   /** 构建时 stdout 与 stderr 的合并输出 */
   output: string;
+  /** 构建产物所在目录的绝对路径 */
+  outDir: string;
   /** 读取生成的页面，例如 page('games/') */
   page(route: string): HTMLElement;
   /** 构建是否生成了这个页面 */
@@ -44,6 +46,7 @@ function runAstroBuild(contentRoot: string, outDir: string): BuildResult {
   return {
     ok: result.status === 0,
     output: `${result.stdout}\n${result.stderr}`,
+    outDir: `${root}${outDir}`,
     page(route) {
       return parse(readFileSync(pageFile(route), 'utf8'));
     },

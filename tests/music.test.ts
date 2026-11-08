@@ -49,16 +49,19 @@ describe('音乐类别页', () => {
     expect(song(build, '群青').text).not.toContain('原曲');
   });
 
-  it('外部链接可以点过去，有音频地址的单曲可以在页面上播放', () => {
+  it('外部链接可以点过去，有音频地址的单曲可以点播', () => {
     const senbonzakura = song(build, '千本桜');
     expect(senbonzakura.querySelectorAll('a').map((a) => [a.text, a.getAttribute('href')])).toEqual([
       ['niconico', 'https://www.nicovideo.jp/watch/sm15630734'],
       ['YouTube', 'https://www.youtube.com/watch?v=shs0rAiwsGQ'],
     ]);
-    expect(senbonzakura.querySelector('audio')!.getAttribute('src')).toBe(
-      'https://media.cirnonine.com/songs/senbonzakura.mp3',
-    );
-    expect(song(build, '群青').querySelector('audio')).toBeNull();
+    const play = senbonzakura.querySelector('button[data-request]')!;
+    expect(play.text.trim()).toBe('播放');
+    expect(play.getAttribute('data-request')).toBe('https://media.cirnonine.com/songs/senbonzakura.mp3');
+    expect(play.getAttribute('aria-pressed')).toBe('false');
+    // 点播交给外壳里常驻的播放器，换页也不中断；单曲自己不带 audio
+    expect(senbonzakura.querySelector('audio')).toBeNull();
+    expect(song(build, '群青').querySelector('button[data-request]')).toBeNull();
   });
 
   it('显示短评、心头好和歌词语录（原文和可选的中文译文）', () => {

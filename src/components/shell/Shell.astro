@@ -5,18 +5,19 @@
  */
 import { ClientRouter } from 'astro:transitions';
 import Player from './Player.astro';
+import { SITE_MUSIC } from '../../lib/background-music';
+import type { PageMusic } from '../../lib/playback';
 
 interface Props {
   title: string;
+  /**
+   * 这一页的背景音乐：'none' 是没有（音乐页）；否则写出这一页有的层级，例如 { category: CATEGORY_MUSIC.games }，
+   * 不写就是全站背景音乐。专属页还可以在章节元素上写 data-section-music，滚到哪一章就换成那一章的作品背景音乐。
+   */
+  music?: PageMusic;
 }
 
-const { title } = Astro.props;
-
-/**
- * 全站背景音乐：Malachi Bailey「Under the stars」，放在 R2（ADR-0003）。
- * 换曲时上传成新文件名再改这里，不要覆盖旧文件，免得 Cloudflare 缓存还在给旧的。
- */
-const SITE_MUSIC = 'https://media.cirnonine.com/background-music/under-the-stars.m4a';
+const { title, music = {} } = Astro.props;
 
 const NAV = [
   { href: '/games/', label: '游戏' },
@@ -34,7 +35,11 @@ const here = Astro.url.pathname;
     <title>{title}</title>
     <ClientRouter />
   </head>
-  <body>
+  <body
+    data-background-music={music === 'none' ? 'none' : undefined}
+    data-category-music={music !== 'none' ? music.category : undefined}
+    data-work-music={music !== 'none' ? music.work : undefined}
+  >
     <header class="shell-header">
       <a class="mark" href="/">cirnonine</a>
       <nav aria-label="类别">

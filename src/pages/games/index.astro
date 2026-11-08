@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import Shell from '../../components/shell/Shell.astro';
+import { CATEGORY_MUSIC } from '../../lib/background-music';
 import GameRecord from '../../components/games/GameRecord.astro';
 import { compareCompletionDates } from '../../lib/completion-date';
 import { stackBySeries } from '../../lib/series';
@@ -13,7 +14,7 @@ const games = (await getCollection('games')).sort(
 const entries = stackBySeries(games, await getCollection('series'));
 ---
 
-<Shell title="游戏 · cirnonine">
+<Shell title="游戏 · cirnonine" music={{ category: CATEGORY_MUSIC.games }}>
   <main>
     <h1>游戏</h1>
     <ol>

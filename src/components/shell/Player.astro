@@ -10,8 +10,14 @@ const { siteMusic } = Astro.props;
 ---
 
 <div class="player" data-site-music={siteMusic} transition:persist="player">
-  <audio loop preload="none"></audio>
-  <button type="button" aria-pressed="false">静音</button>
+  <!-- 换曲时一个 audio 淡出、另一个淡入；连着换时播放器会再加一个，免得还在淡出的那首被掐断 -->
+  <audio preload="auto"></audio>
+  <audio preload="auto"></audio>
+  <p class="now-playing" aria-live="polite" hidden>
+    <span>点播中：<span class="now-playing-title"></span></span>
+    <button type="button" class="stop">停止</button>
+  </p>
+  <button type="button" class="mute" aria-pressed="false">静音</button>
 
   <dialog class="entry" aria-labelledby="entry-title">
     <form method="dialog">
@@ -42,9 +48,31 @@ const { siteMusic } = Astro.props;
     position: fixed;
     right: 1rem;
     bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    max-width: calc(100vw - 2rem);
   }
 
-  .player > button {
+  .now-playing {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.25rem 0 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--shell-muted);
+    background: var(--shell-bg);
+  }
+
+  .now-playing[hidden] {
+    display: none;
+  }
+
+  .mute,
+  .stop {
     font: inherit;
     font-size: 0.875rem;
     color: var(--shell-muted);
@@ -54,7 +82,7 @@ const { siteMusic } = Astro.props;
     cursor: pointer;
   }
 
-  .player > button[aria-pressed='true'] {
+  .mute[aria-pressed='true'] {
     color: var(--shell-fg);
     text-decoration: line-through;
   }

@@ -2,6 +2,7 @@
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import { Image } from 'astro:assets';
 import Shell from '../../components/shell/Shell.astro';
+import { CATEGORY_MUSIC } from '../../lib/background-music';
 import { coverColor } from '../../lib/cover-color';
 import { completionDateTimeAttribute, formatCompletionDate } from '../../lib/completion-date';
 import { detailPage } from '../../lib/detail-page';
@@ -25,7 +26,7 @@ const label = formatCompletionDate(data.completed);
 const color = data.cover && (await coverColor(data.cover));
 ---
 
-<Shell title={`${data.originalTitle} · 游戏 · cirnonine`}>
+<Shell title={`${data.originalTitle} · 游戏 · cirnonine`} music={{ category: CATEGORY_MUSIC.games }}>
   <main style={color ? `--cover-color: ${color}` : undefined}>
     <p><a href="/games/">游戏</a></p>
     {data.cover && <Image src={data.cover} alt="" width={480} />}
