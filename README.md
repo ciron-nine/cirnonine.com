@@ -17,13 +17,15 @@ pnpm test     # Vitest：单元测试 + 构建产物测试
 originalTitle: Hotline Miami   # 原名，必填
 translatedTitle: 火线迈阿密      # 译名，可选
 slug: hotline-miami            # 小写 ASCII、连字符分隔，必填
+developer: Dennaton Games      # 开发者（制作组），必填；发行商不记
+cover: ./hotline-miami.jpg     # 封面，放在记录旁边；还没有封面时写 ../placeholder-cover.png
 completed: 2024-03-15          # 完成日期，必填：2024-03-15 / 2024-03 / 2024 / unknown（很久以前）
 shortReview: 霓虹和噪音          # 短评，可选
 favorite: true                 # 心头好，可选，默认 false
 ---
 ```
 
-格式不对（缺原名、日期写法不认识、slug 不是 ASCII、写了不存在的字段）时 `pnpm build` 会失败并指出是哪个文件、哪个字段。
+格式不对（缺原名或开发者、日期写法不认识、slug 不是 ASCII、写了不存在的字段）时 `pnpm build` 会失败并指出是哪个文件、哪个字段。
 
 注意：YAML 会把未加引号的 `2024-02-30`、`2024-13-01` 这种不存在的日子悄悄顺延成别的日期，构建无法发现；不确定时给日期加引号（`completed: "2024-02-30"`），写错了就会报错。
 
@@ -31,6 +33,7 @@ favorite: true                 # 心头好，可选，默认 false
 
 - `src/**/*.test.ts`：纯模块的单元测试（例如 `src/lib/completion-date.ts`）。
 - `tests/*.test.ts`：构建产物测试。`tests/build.ts` 的 `buildFixture(name)` 以 `tests/fixtures/<name>/` 作为内容目录（环境变量 `CONTENT_ROOT`）跑一次完整的 `astro build`，输出到 `tests/.output/<name>/`，测试断言生成的 HTML 或构建报错。
+- `tests/site-content.test.ts`：用真正的 `src/content/` 构建一次（`buildSiteContent()`），检查四个类别页列出了每一条记录、每条都有封面（所以 `src/content/` 里的记录都要写 `cover`，还没有封面就用占位图）。它不对具体作品断言，增删记录不用改测试。
 
 ## 部署
 

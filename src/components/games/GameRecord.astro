@@ -23,6 +23,7 @@ const color = data.cover && (await coverColor(data.cover));
   {data.cover && <Image src={data.cover} alt="" width={120} />}
   <Heading>{href ? <a href={href}>{data.originalTitle}</a> : data.originalTitle}</Heading>
   {data.translatedTitle && <p>{data.translatedTitle}</p>}
+  <p>{data.developer}</p>
   <p>{datetime ? <time datetime={datetime}>{label}</time> : label}</p>
   {data.favorite && <p>心头好</p>}
   {data.shortReview && <p>{data.shortReview}</p>}

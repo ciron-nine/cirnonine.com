@@ -25,8 +25,16 @@ export interface BuildResult {
  * 构建在子进程里进行，和 `pnpm build` 走的是同一条路。
  */
 export function buildFixture(fixture: string): BuildResult {
-  const contentRoot = `tests/fixtures/${fixture}`;
-  const outDir = `tests/.output/${fixture}`;
+  return runAstroBuild(`tests/fixtures/${fixture}`, `tests/.output/${fixture}`);
+}
+
+/** 用站点真正的内容目录 src/content/ 跑一次完整的 astro build，和部署时构建的是同一份内容。 */
+export function buildSiteContent(): BuildResult {
+  return runAstroBuild('src/content', 'tests/.output/site-content');
+}
+
+/** 以 contentRoot 为内容目录（环境变量 CONTENT_ROOT）在子进程里跑 astro build，输出到 outDir。 */
+function runAstroBuild(contentRoot: string, outDir: string): BuildResult {
   const result = spawnSync('pnpm', ['exec', 'astro', 'build', '--force', '--outDir', outDir], {
     cwd: root,
     env: { ...process.env, CONTENT_ROOT: contentRoot, NO_COLOR: '1', FORCE_COLOR: '0' },

@@ -42,8 +42,8 @@
 | 轻音少女 剧场版 | 映画けいおん！ | 轻音少女 剧场版 | 2011 | 京都动画 | `k-on-movie` | `k-on` | [Bangumi 12426](https://bgm.tv/subject/12426) · [MAL 9617](https://myanimelist.net/anime/9617) |
 | 中二病也要谈恋爱 1 | 中二病でも恋がしたい！ | 中二病也要谈恋爱！ | 2012 | 京都动画 | `chuunibyou` | `chuunibyou` | [Bangumi 29648](https://bgm.tv/subject/29648) · [MAL 14741](https://myanimelist.net/anime/14741) |
 | 中二病也要谈恋爱 2 | 中二病でも恋がしたい！戀 | 中二病也要谈恋爱！恋 | 2014 | 京都动画 | `chuunibyou-ren` | `chuunibyou` | [Bangumi 72942](https://bgm.tv/subject/72942) · [MAL 18671](https://myanimelist.net/anime/18671) |
-| 中二病也要谈恋爱 剧场版 ⚠️（候选 A） | 小鳥遊六花・改 ～劇場版 中二病でも恋がしたい！～ | 中二病也要谈恋爱！剧场版 小鸟游六花・改 | 2013 | 京都动画 | `chuunibyou-movie-rikka-kai` | `chuunibyou` | [Bangumi 75521](https://bgm.tv/subject/75521) · [MAL 19021](https://myanimelist.net/anime/19021) |
-| 中二病也要谈恋爱 剧场版 ⚠️（候选 B） | 映画 中二病でも恋がしたい！ -Take On Me- | 电影 中二病也要谈恋爱！ -Take On Me- | 2018 | 京都动画 | `chuunibyou-movie-take-on-me` | `chuunibyou` | [Bangumi 215425](https://bgm.tv/subject/215425) · [MAL 35608](https://myanimelist.net/anime/35608) |
+| 中二病也要谈恋爱 剧场版 （候选 A，站长决定不记） | 小鳥遊六花・改 ～劇場版 中二病でも恋がしたい！～ | 中二病也要谈恋爱！剧场版 小鸟游六花・改 | 2013 | 京都动画 | `chuunibyou-movie-rikka-kai` | `chuunibyou` | [Bangumi 75521](https://bgm.tv/subject/75521) · [MAL 19021](https://myanimelist.net/anime/19021) |
+| 中二病也要谈恋爱 剧场版 （候选 B，已确认） | 映画 中二病でも恋がしたい！ -Take On Me- | 电影 中二病也要谈恋爱！ -Take On Me- | 2018 | 京都动画 | `chuunibyou-movie-take-on-me` | `chuunibyou` | [Bangumi 215425](https://bgm.tv/subject/215425) · [MAL 35608](https://myanimelist.net/anime/35608) |
 | 南家三姐妹 ⚠️（第 1 季） | みなみけ | 南家三姐妹 | 2007 | 童梦（Daume） | `minami-ke` | `minami-ke` | [Bangumi 283](https://bgm.tv/subject/283) · [MAL 2963](https://myanimelist.net/anime/2963) |
 | 南家三姐妹 ⚠️（第 2 季） | みなみけ おかわり | 南家三姐妹 再来一碗 | 2008 | Asread | `minami-ke-okawari` | `minami-ke` | [Bangumi 890](https://bgm.tv/subject/890) · [MAL 3225](https://myanimelist.net/anime/3225) |
 | 南家三姐妹 ⚠️（第 3 季） | みなみけ おかえり | 南家三姐妹 欢迎回来 | 2009 | Asread | `minami-ke-okaeri` | `minami-ke` | [Bangumi 889](https://bgm.tv/subject/889) · [MAL 5162](https://myanimelist.net/anime/5162) |
@@ -102,7 +102,7 @@
 | 初音未来的消失 | 初音ミクの消失 | 初音未来的消失 | 2007 | 演唱：初音ミク；P：cosMo@暴走P | `hatsune-miku-no-shoushitsu` | — | [VocaDB S/295872](https://vocadb.net/S/295872)（NND sm1476648，2007-11-08） |
 | 病名为爱 | 病名は愛だった | 病名为爱 | 2017 | 演唱：鏡音リン・レン（V4X）；P：Neru（Apple Music 署名为 Neru「feat. z'5」，VocaDB 只记 Neru） | `byoumei-wa-ai-datta` | — | [VocaDB S/164262](https://vocadb.net/S/164262) · [Apple Music](https://music.apple.com/jp/album/%E7%97%85%E5%90%8D%E3%81%AF%E6%84%9B%E3%81%A0%E3%81%A3%E3%81%9F-feat-z5/1801483517) |
 | daisy crown ⚠️ | Daisy Crown | — | 2025 | Empty old City & 鸣潮先约电台（℗ 2025 KURO GAMES /《鸣潮》相关单曲） | `daisy-crown` | — | [Apple Music 单曲](https://music.apple.com/jp/album/daisy-crown/1797256068) |
-| 东方同人曲 time paradox ⚠️ | タイムパラドックス（候选很多，见下文） | — | 待定 | 待定 | `time-paradox` | — | TouhouDB 候选：[S/20224](https://touhoudb.com/S/20224) · [S/104333](https://touhoudb.com/S/104333) · [S/48636](https://touhoudb.com/S/48636) · [S/112607](https://touhoudb.com/S/112607) · [S/139835](https://touhoudb.com/S/139835) |
+| 东方同人曲 time paradox | タイムパラドックス（已确认森羅万象这首，其余候选见下文） | — | 2019 | 森羅万象（编曲 kaztora，演唱 あよ；原曲 秘境のマーメイド） | `time-paradox` | — | TouhouDB 候选：[S/20224](https://touhoudb.com/S/20224) · [S/104333](https://touhoudb.com/S/104333) · [S/48636](https://touhoudb.com/S/48636) · [S/112607](https://touhoudb.com/S/112607) · [S/139835](https://touhoudb.com/S/139835) |
 | 世界第一公主殿下 | ワールドイズマイン | 世界第一公主殿下 | 2008 | 演唱：初音ミク；P：ryo（supercell） | `world-is-mine` | — | [VocaDB S/1326](https://vocadb.net/S/1326)（2008-05-31） |
 | 千本樱 | 千本桜 | 千本樱 | 2011 | 演唱：初音ミク；P：黒うさP | `senbonzakura` | — | [VocaDB S/8394](https://vocadb.net/S/8394)（2011-09-17） |
 | 夜鹿的老人与海 | 老人と海 | 老人与海 | 2021 | ヨルシカ（作词作曲 n-buna，演唱 suis） | `roujin-to-umi` | — | [Apple Music 单曲](https://music.apple.com/jp/album/%E8%80%81%E4%BA%BA%E3%81%A8%E6%B5%B7/1674467767)（2021-08-18） |
@@ -125,8 +125,8 @@
 |---|---|---|
 | `hotline-miami` | Hotline Miami | `hotline-miami` → `hotline-miami-2-wrong-number` |
 | `k-on` | けいおん！ / 轻音少女 | `k-on` → `k-on-season-2` → `k-on-movie` |
-| `chuunibyou` | 中二病でも恋がしたい！ | `chuunibyou` → `chuunibyou-movie-rikka-kai`(?) → `chuunibyou-ren` → `chuunibyou-movie-take-on-me`(?) |
-| `minami-ke` | みなみけ / 南家三姐妹 | `minami-ke` → `minami-ke-okawari` → `minami-ke-okaeri` → `minami-ke-tadaima`（主人只看了其中 3 部，待确认） |
+| `chuunibyou` | 中二病でも恋がしたい！ | `chuunibyou` → `chuunibyou-ren` → `chuunibyou-movie-take-on-me`（总集篇 `chuunibyou-movie-rikka-kai` 不记） |
+| `minami-ke` | みなみけ / 南家三姐妹 | `minami-ke` → `minami-ke-okawari` → `minami-ke-okaeri` → `minami-ke-tadaima`（4 部都看了，已确认） |
 | `bang-dream` | BanG Dream!（动画） | `bang-dream-its-mygo` → `bang-dream-ave-mujica` → `bandori-yume-mita` |
 | `grand-blue` | ぐらんぶる / 碧蓝之海 | `grand-blue`（目前只有第一季） |
 | `frieren` | 葬送のフリーレン | `frieren` → `frieren-season-2` |
@@ -138,7 +138,7 @@
 
 ## ⚠️ 需要确认
 
-共 **10** 项。每项都尽量写成能直接回答的选择题。
+共 **10** 项。每项都尽量写成能直接回答的选择题。站长已于 2026-11-07 全部确认，结论见下一节「站长确认结果」。
 
 1. **轻音少女「1、2、3」**：TV 正篇只有两季：《けいおん！》（2009）和《けいおん！！》（2010，两个季度共 26 话）。你说的「2、3」是不是指《けいおん！！》的前后两个季度？我建议记为 **2 条 TV＋1 条剧场版**，共 3 条。还是你想把《けいおん！！》拆成两条（例如 `k-on-season-2-part-1/2`）？
 2. **中二病 剧场版**：有两部。A 是《小鳥遊六花・改》（2013，第一季总集篇＋新镜头），B 是《Take On Me》（2018，全新剧情的完结篇）。你看的是 A、B，还是两部都看了？
@@ -158,6 +158,32 @@
    是有人声的那首（森羅万象 / あよ）吗？如果不是，记得是女声还是纯音乐，或者在哪个平台听的？
 9. **YOASOBI 的 monster**：日文原曲是《怪物》（2021-01-06，《BEASTARS》第二季 OP）。YOASOBI 还出过英文版《Monster (English Version)》（2021-07-30，收录于《E-SIDE》）。你听的是日文《怪物》还是英文版《Monster》？两者建议分开记。
 10. **初音未来的 orange**：最可能的是トーマ feat. 初音ミク《オレンジ》（2012-12-20，NND 和 VocaDB 上热度最高的「Miku＋オレンジ」原创曲）。其他沾边的初音曲有：つなまる《橙ゲノム》（2012）、光収容《夕闇とオレンジ》（2010，但这首是鏡音リン唱的）。另外注意：7!!《オレンジ》（《四月是你的谎言》ED）和 SPYAIR《オレンジ》都不是初音曲。是トーマ那首吗？
+
+---
+
+## 站长确认结果（2026-11-07）
+
+1. **轻音少女**：记 2 条 TV＋1 条剧场版：`k-on`、`k-on-season-2`、`k-on-movie`。《けいおん！！》不拆。
+2. **中二病**：所有作品都看过，但只记两季 TV 和剧场版《Take On Me》：`chuunibyou`、`chuunibyou-ren`、`chuunibyou-movie-take-on-me`。不记总集篇《小鳥遊六花・改》。
+3. **南家三姐妹**：4 部 TV 都看了，四条都记。
+4. **梦限大**：就是 TV 动画《バンドリ！ ゆめ∞みた》。站长要求日本动画的原名用日语，所以原名写「バンドリ！ ゆめ∞みた」，译名写「梦限大」。MyGO 和 Ave Mujica 的日本官方原名本身就是拉丁字母，原名照旧。
+5. **神之天平**：玩的是 Revision 商业版，记录不变（`astlibra-revision`）。
+6. **银河与丸子龙**：确认是《マルコと銀河竜》，译名用官方的「丸子与银河龙」。
+7. **Daisy Crown**：听的是原版（Empty old City & 鸣潮先约电台，2025）。
+8. **time paradox**：是森羅万象《タイムパラドックス》（kaztora 编曲，あよ 演唱，原曲 秘境のマーメイド）。
+9. **YOASOBI**：是日文《怪物》（`kaibutsu`），不记英文版。
+10. **初音未来的 orange**：是トーマ《オレンジ》（`orange-toma`）。
+
+写入记录时另外定下的几点：
+
+- **完成日期**：种子数据全部写 `unknown`（单曲写 `added: unknown`），都归入很久以前，站长以后自己补。
+- **游戏的开发者**：游戏记录新增必填字段 `developer`，和视觉小说的 `brand`、动画的 `studio` 对应。平台和游玩时长不记，是因为它们属于个人经历，常常记不清；开发者则总能查到。发行商（如 Devolver Digital）不记。游戏、视觉小说、单曲都不记发行年份，类别页按完成日期排序。
+- **制作公司的写法**：动画的 `studio` 按原产地写日文名（京都アニメーション、童夢、アスリード、サンジゲン、ニチカライン、東映アニメーション、サンライズ、ゼロジー、マッドハウス 等）。九日的开发者写「赤燭遊戲」。
+- **品牌和开发者的写法**：魔法少女ノ魔女裁判 的品牌写 VNDB 上的品牌名 Acacia（会社是合同会社Re,AER）；NEEDY GIRL OVERDOSE 的开发者照 Steam 署名写「WSS playground / xemono」，两家都列为开发者。
+- **单曲的署名**：组合的歌（YOASOBI、ヨルシカ）演唱写组合名，P 主写作曲者（Ayase、n-buna）。同人改编曲的 P 主写编曲者，括号里注社团，例如「kaztora（森羅万象）」。病名は愛だった 的 P 主按 VocaDB 只写 Neru。
+- **系列**：按上面「系列分组建议」建了 8 个，BanG Dream! 三部都放进 `bang-dream`。`grand-blue` 和 `bishoujo-mangekyou` 目前各只有一条。
+- **封面**：所有记录先用同一张占位图 `src/content/placeholder-cover.png`（灰色斜纹＋「NO COVER / PLACEHOLDER」）。换真封面时把图片放在记录旁边，`cover` 改成 `./<slug>.jpg`。
+- **短评**留空。动画的首播季度和集数按 AniList 填写（芙莉莲第一季 2023-09-29 开播，按 AniList 记为秋季）。
 
 ---
 

@@ -22,6 +22,12 @@ describe('格式不对的游戏记录让构建失败', () => {
       message: /slug.*只能用小写 ASCII 字母、数字和连字符/,
     },
     {
+      problem: '缺开发者',
+      fixture: 'game-missing-developer',
+      file: 'to-the-moon',
+      message: /developer.*缺少开发者/,
+    },
+    {
       problem: '写了游戏记录没有的字段（平台、游玩时长）',
       fixture: 'unknown-field',
       file: 'sanabi',

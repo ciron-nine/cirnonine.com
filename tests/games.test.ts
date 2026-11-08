@@ -43,6 +43,13 @@ describe('游戏类别页', () => {
     expect(rows[2].text).toContain('2024年3月15日');
   });
 
+  it('显示开发者', () => {
+    const records = build.page('games/').querySelectorAll('main article');
+    const byTitle = (title: string) => records.find((a) => a.querySelector('h2, h3')!.text === title)!;
+    expect(byTitle('Hotline Miami').text).toContain('Dennaton Games');
+    expect(byTitle('九日').text).toContain('赤燭遊戲');
+  });
+
   it('同一系列的记录叠成一摞，以系列名为题，摞里新的在上面', () => {
     const stack = entries(build).find((li) => recordTitles(li).length > 1)!;
     expect(stack.querySelector('h2')!.text).toBe('Hotline Miami');
@@ -66,6 +73,7 @@ describe('游戏详情页', () => {
     const main = build.page('games/hotline-miami/').querySelector('main')!;
     expect(main.querySelector('h1')!.text).toBe('Hotline Miami');
     expect(main.text).toContain('火线迈阿密');
+    expect(main.text).toContain('Dennaton Games');
     expect(main.querySelector('em')!.text).toBe('霓虹');
     expect(main.text).toContain('第二段长评。');
   });

@@ -96,6 +96,8 @@ const games = defineCollection({
         series: seriesReference.optional(),
         completed: completionDateSchema(),
         quotes: z.array(quote).default([]),
+        /** 开发者（制作组），例如 Dennaton Games；发行商不记 */
+        developer: requiredText('缺少开发者（developer），例如 Dennaton Games'),
       },
       { error: unknownFields('游戏', '；游戏不记录平台和游玩时长') },
     ),

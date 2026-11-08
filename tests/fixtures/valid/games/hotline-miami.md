@@ -2,6 +2,7 @@
 originalTitle: Hotline Miami
 translatedTitle: 火线迈阿密
 slug: hotline-miami
+developer: Dennaton Games
 cover: ./hotline-miami.png
 series: hotline-miami
 completed: 2024-03-15
