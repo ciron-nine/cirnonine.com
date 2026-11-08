@@ -1,0 +1,188 @@
+---
+/**
+ * PROTOTYPE 变体 B：记录星图。每条记录是一颗星：心头好更亮；完成日期越近离中心越近，「很久以前」在最外圈。
+ * 悬停（触屏上点按）显示原名，点击跳到记录。
+ *
+ * 星本身是 HTML 链接（CSS 圆点），没有 WebGL 时就是完整的静态版；WebGL 层只在下面加光晕、闪烁和星尘。
+ *
+ * 原名不写成页面文字，放在 aria-label（读屏）和 data-title（悬停时用 ::after 显示）里：
+ * 49 个原名写成文字的话，首页的字体下载会从十几 KB 涨到约 100 KB（ADR-0006）；
+ * 不显示的伪元素不触发字体下载，悬停时才下那几个字所在的切片（类别页上都出现过，切片里有字形）。
+ */
+import type { HeroRecord } from './hero-data';
+import { layoutStars, ELLIPSE } from './star-layout';
+
+interface Props {
+  records: HeroRecord[];
+  now: Date;
+}
+const { records, now } = Astro.props;
+const { stars, rings } = layoutStars(records, now);
+const pct = (v: number) => `${(v * 100).toFixed(3)}%`;
+---
+
+<nav class="frame" data-hero-frame aria-label="记录星图">
+  {
+    rings.map((ring) => (
+      <span
+        class="ring"
+        aria-hidden="true"
+        style={`--w:${pct(ring.rho * ELLIPSE.rx * 2)};--h:${pct(ring.rho * ELLIPSE.ry * 2)}`}
+      >
+        <span class="ring-label">{ring.label}</span>
+      </span>
+    ))
+  }
+  {
+    stars.map((star) => {
+      const x = 0.5 + star.rho * ELLIPSE.rx * Math.cos(star.theta);
+      const y = 0.5 + star.rho * ELLIPSE.ry * Math.sin(star.theta);
+      return (
+        <a
+          class:list={['star', { fav: star.record.favorite, left: x > 0.62 }]}
+          href={star.record.href}
+          lang={star.record.lang}
+          aria-label={star.record.title}
+          data-title={star.record.title}
+          style={`--x:${pct(x)};--y:${pct(y)};--m:${star.mag.toFixed(3)}`}
+          data-rho={star.rho.toFixed(4)}
+          data-theta={star.theta.toFixed(4)}
+          data-mag={star.mag.toFixed(3)}
+        >
+          <span class="dot" aria-hidden="true" />
+        </a>
+      );
+    })
+  }
+</nav>
+
+<style>
+  .frame {
+    position: relative;
+    display: block;
+    aspect-ratio: 2 / 1;
+    max-height: 72svh;
+    color: var(--shell-fg);
+  }
+
+  @media (max-width: 640px) {
+    .frame {
+      aspect-ratio: 1;
+    }
+  }
+
+  .ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--w);
+    height: var(--h);
+    border: 1px solid var(--shell-rule);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .ring-label {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    padding: 0 0.375rem;
+    font-size: 0.6875rem;
+    line-height: 1;
+    color: var(--shell-muted);
+    letter-spacing: 0.04em;
+    background: var(--shell-bg);
+    transform: translate(-50%, -50%);
+  }
+
+  .star {
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: -0.75rem 0 0 -0.75rem;
+    text-decoration: none;
+    border-radius: 50%;
+  }
+
+  .dot {
+    width: calc(2px + var(--m) * var(--m) * 5px);
+    height: calc(2px + var(--m) * var(--m) * 5px);
+    background: currentColor;
+    border-radius: 50%;
+    opacity: calc(0.35 + var(--m) * 0.65);
+    transition: opacity 600ms ease;
+  }
+
+  .fav .dot {
+    box-shadow: 0 0 0 3px light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.12));
+  }
+
+  /* 有 WebGL 时圆点交给 WebGL 画，链接只留作热区和标签 */
+  .frame[data-gl='on'] .dot {
+    opacity: 0;
+  }
+
+  .star::after {
+    content: attr(data-title);
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 0.125rem);
+    padding: 0.125rem 0.375rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    color: var(--shell-fg);
+    background: var(--shell-bg);
+    transform: translateY(-50%);
+    pointer-events: none;
+    display: none;
+  }
+
+  .left::after {
+    right: calc(100% + 0.125rem);
+    left: auto;
+  }
+
+  .star:hover,
+  .star:focus-visible,
+  .star.armed {
+    z-index: 2;
+  }
+
+  .star:hover::after,
+  .star:focus-visible::after,
+  .star.armed::after {
+    display: block;
+  }
+
+  .star:focus-visible {
+    outline-offset: 0;
+  }
+
+  .frame :global(canvas) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 900ms ease;
+    pointer-events: none;
+  }
+
+  .frame[data-gl='on'] :global(canvas) {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dot,
+    .frame :global(canvas) {
+      transition: none;
+    }
+  }
+</style>

@@ -1,10 +1,22 @@
 ---
 import Shell from '../components/shell/Shell.astro';
+import HomeHeroPrototype from '../components/home-hero-prototype/HomeHeroPrototype.astro';
+import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
 ---
 
-<!-- 占位首页：正式首页要在 A/C/D 三个原型里选定后再做，这里只让站标有个去处 -->
+<!-- 占位首页：正式首页是 #19（D 专辑内页）。PROTOTYPE：主视觉的三个 WebGL 变体，?variant=A / B / C -->
 <Shell title="cirnonine">
   <main id="main">
+    <HomeHeroPrototype />
     <h1>cirnonine</h1>
   </main>
+  {import.meta.env.DEV && <PrototypeSwitcher />}
 </Shell>
+
+<script>
+  import { showCurrentVariant } from '../components/prototype/variants';
+
+  document.addEventListener('astro:page-load', () => {
+    if (document.querySelector('[data-prototype-variants]')) showCurrentVariant();
+  });
+</script>

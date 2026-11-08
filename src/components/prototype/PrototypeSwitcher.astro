@@ -1,0 +1,110 @@
+---
+/**
+ * PROTOTYPE：底部居中的变体切换条，只在开发环境渲染（由页面用 import.meta.env.DEV 控制）。
+ * 变体列表从页面里的 [data-prototype-variants] 读，不用传参。← → 键也能切换。
+ * 「示意」开关切换 ?sample=1（首页主视觉 B、C 用示意数据，见 home-hero-prototype/hero-data.ts）。
+ */
+---
+
+<div class="prototype-switcher" data-prototype-switcher>
+  <button type="button" data-step="-1" aria-label="上一个变体">←</button>
+  <span class="label" aria-live="polite"></span>
+  <button type="button" data-step="1" aria-label="下一个变体">→</button>
+  <button type="button" class="sample" data-sample aria-pressed="false">示意数据</button>
+</div>
+
+<script>
+  import { currentVariant, listVariants, showCurrentVariant, stepVariant } from './variants';
+
+  function sampleOn() {
+    return new URL(location.href).searchParams.get('sample') === '1';
+  }
+
+  function render() {
+    document.querySelector('[data-sample]')?.setAttribute('aria-pressed', String(sampleOn()));
+    const label = document.querySelector('[data-prototype-switcher] .label');
+    if (!label) return;
+    const current = listVariants().find((v) => v.key === currentVariant());
+    label.textContent = current ? `${current.key}（${current.name}）` : '';
+  }
+
+  document.addEventListener('prototype:variant', render);
+  document.addEventListener('astro:page-load', () => {
+    document.querySelector('[data-sample]')?.addEventListener('click', () => {
+      const url = new URL(location.href);
+      if (sampleOn()) url.searchParams.delete('sample');
+      else url.searchParams.set('sample', '1');
+      history.replaceState(history.state, '', url);
+      showCurrentVariant();
+    });
+    for (const button of document.querySelectorAll<HTMLButtonElement>('[data-prototype-switcher] button[data-step]')) {
+      button.addEventListener('click', () => stepVariant(Number(button.dataset.step) as 1 | -1));
+    }
+    render();
+  });
+
+  // 模块只执行一次，键盘监听只挂一次；页面上没有切换条时不处理
+  document.addEventListener('keydown', (event) => {
+    if (!document.querySelector('[data-prototype-switcher]')) return;
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+    event.preventDefault();
+    stepVariant(event.key === 'ArrowLeft' ? -1 : 1);
+  });
+</script>
+
+<style>
+  .prototype-switcher {
+    position: fixed;
+    /* 让开 Astro 开发工具条（也在底部居中） */
+    bottom: 3.5rem;
+    left: 50%;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    font: 600 0.8125rem/1 system-ui, sans-serif;
+    color: #fff;
+    background: #e5004f;
+    border-radius: 999px;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
+    transform: translateX(-50%);
+  }
+
+  button {
+    width: 2rem;
+    height: 2rem;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    background: rgb(255 255 255 / 0.15);
+    border: 0;
+    border-radius: 999px;
+  }
+
+  button:hover,
+  button:focus-visible {
+    background: rgb(255 255 255 / 0.3);
+  }
+
+  .sample {
+    width: auto;
+    padding: 0 0.75rem;
+    white-space: nowrap;
+  }
+
+  .sample[aria-pressed='true'] {
+    color: #e5004f;
+    background: #fff;
+  }
+
+  .label {
+    min-width: 7.5rem;
+    padding: 0 0.5rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+</style>
