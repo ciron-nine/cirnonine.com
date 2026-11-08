@@ -2,7 +2,7 @@
 /**
  * PROTOTYPE 变体 A：文字自画像（参考 Feltron 首页）。
  * 整页就是一大段第一人称的话：作品的原名就是链接，「玩完了」「读完了」这些动词是四个类别的入口，
- * 悬停一个动词时其余类别的作品变淡。头像嵌在第一句话里，点它旁边的箭头往回翻。
+ * 悬停一个动词时其余类别的作品变淡。头像嵌在第一句话里，旁边两个小箭头往回翻，不另作说明。
  * 没有图片网格、没有卡片，只有字。
  */
 import type { HomeData, HomeRecord } from './home-data';
@@ -43,7 +43,13 @@ const caption = (r: HomeRecord, label: string) =>
       {
         data.avatars.map((avatar) => (
           <span class="slide" data-avatar-slide>
-            <AvatarPlaceholder avatar={avatar} class="face" />
+            {avatar.from.record ? (
+              <a href={avatar.from.record.href}>
+                <AvatarPlaceholder avatar={avatar} class="face" />
+              </a>
+            ) : (
+              <AvatarPlaceholder avatar={avatar} class="face" />
+            )}
           </span>
         ))
       }
@@ -120,24 +126,6 @@ const caption = (r: HomeRecord, label: string) =>
     。
   </p>
 
-  <p class="avatar-note voice small">
-    用过的头像，从现在往回：
-    {
-      data.avatars.map((avatar, i) => (
-        <>
-          {i > 0 && ' ← '}
-          {avatar.from.record ? (
-            <a class="work" href={avatar.from.record.href} title={avatar.from.title}>
-              {avatar.name}
-            </a>
-          ) : (
-            <span title={avatar.from.title}>{avatar.name}</span>
-          )}
-        </>
-      ))
-    }
-    （占位）
-  </p>
 </article>
 
 <script>
@@ -198,6 +186,10 @@ const caption = (r: HomeRecord, label: string) =>
 
   .slide[hidden] {
     display: none;
+  }
+
+  .slide a {
+    display: block;
   }
 
   .avatar-steps {
