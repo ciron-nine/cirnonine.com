@@ -5,6 +5,7 @@ import { CATEGORY_MUSIC } from '../../lib/background-music';
 import AnimeRecord from '../../components/anime/AnimeRecord.astro';
 import { compareCompletionDates } from '../../lib/completion-date';
 import { stackBySeries } from '../../lib/series';
+import { originalTitleLang } from '../../lib/original-title';
 
 const allAnime = (await getCollection('anime')).sort(
   (a, b) =>
@@ -15,7 +16,7 @@ const entries = stackBySeries(allAnime, await getCollection('series'));
 ---
 
 <Shell title="动画 · cirnonine" music={{ category: CATEGORY_MUSIC.anime }}>
-  <main>
+  <main id="main">
     <h1>动画</h1>
     <ol>
       {
@@ -26,7 +27,7 @@ const entries = stackBySeries(allAnime, await getCollection('series'));
             </li>
           ) : (
             <li>
-              <h2>{entry.series.data.originalTitle}</h2>
+              <h2 lang={originalTitleLang(entry.series.data)}>{entry.series.data.originalTitle}</h2>
               {entry.series.data.translatedTitle && <p>{entry.series.data.translatedTitle}</p>}
               <ol>
                 {entry.records.map((member) => (

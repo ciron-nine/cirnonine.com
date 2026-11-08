@@ -6,7 +6,7 @@
  *
  * 页面怎么声明背景音乐：Shell 把 music 写在 <body> 的 data-background-music / data-category-music /
  * data-work-music 上；专属页的章节元素写 data-section-music。点播按钮写 data-request（音频地址）和
- * data-request-title（歌名）。
+ * data-request-title（歌名），歌名是日文时再写 data-request-lang="ja"。
  */
 import {
   audioFor,
@@ -78,8 +78,8 @@ export function mountPlayer(root: HTMLElement): void {
   let live: HTMLAudioElement | null = null;
   /** 正在淡入或淡出的 audio 和它的定时器 */
   const fades = new Map<HTMLAudioElement, ReturnType<typeof setInterval>>();
-  /** 点播过的单曲的原名，显示在「点播中」 */
-  const titles = new Map<string, string>();
+  /** 点播过的单曲的原名和它的语言，显示在「点播中」 */
+  const titles = new Map<string, { title: string; lang?: string }>();
   let waitingForGesture = false;
   let sections: IntersectionObserver | undefined;
 
@@ -185,7 +185,10 @@ export function mountPlayer(root: HTMLElement): void {
       button.setAttribute('aria-pressed', String(button.dataset.request === state.request));
     }
     nowPlaying.hidden = state.request === null;
-    nowPlayingTitle.textContent = state.request === null ? '' : (titles.get(state.request) ?? '');
+    const playing = state.request === null ? undefined : titles.get(state.request);
+    nowPlayingTitle.textContent = playing?.title ?? '';
+    if (playing?.lang) nowPlayingTitle.setAttribute('lang', playing.lang);
+    else nowPlayingTitle.removeAttribute('lang');
   }
 
   function remember() {
@@ -245,7 +248,7 @@ export function mountPlayer(root: HTMLElement): void {
     if (state.request === src) {
       dispatch({ type: 'request-ended', src });
     } else {
-      titles.set(src, button.dataset.requestTitle ?? '');
+      titles.set(src, { title: button.dataset.requestTitle ?? '', lang: button.dataset.requestLang });
       dispatch({ type: 'request', src });
     }
   });

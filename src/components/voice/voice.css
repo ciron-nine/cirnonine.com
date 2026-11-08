@@ -1,0 +1,132 @@
+/*
+ * 我的声音：短评、长评、我挑的语录、心头好、完成日期（单曲是收录日期）在每一页上的样子（ADR-0005）。
+ * 气质是安静、克制、私人、带一点粗粝：像在专辑内页上用铅笔写下的字。
+ * 颜色是铅笔的灰黑，不跟作品的封面色走；类别页可以用这些 token，但不要改写这几种样子本身。
+ *
+ * 字体名和回退顺序与 src/fonts/roles.ts 一致：.voice 里的字切进 cirnonine-voice，其中的日文切进 cirnonine-voice-ja。
+ */
+:root {
+  /* 第二个是 Klee One：文楷 TC 的逗号、句号、顿号不合简体写法，这几个字借它的（见 roles.ts） */
+  --voice-font: 'cirnonine-voice', 'cirnonine-voice-ja', 'cirnonine-body', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  --voice-font-ja: 'cirnonine-voice-ja', 'cirnonine-voice', 'cirnonine-body', serif;
+  /** 铅笔的灰黑 */
+  --voice-ink: light-dark(#34322e, #d6d2c8);
+  --voice-faint: light-dark(#6f6b63, #9a958b);
+  /** 铅笔圈、铅笔线 */
+  --voice-mark: light-dark(rgb(52 50 46 / 0.72), rgb(214 210 200 / 0.6));
+}
+
+.voice {
+  font-family: var(--voice-font);
+  font-weight: 400;
+  color: var(--voice-ink);
+}
+
+.voice:lang(ja),
+.voice :lang(ja) {
+  font-family: var(--voice-font-ja);
+}
+
+/* 短评 */
+.voice-short-review {
+  margin-block: 0.25em;
+  font-size: 1.0625em;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* 心头好：铅笔随手画的一个圈，首尾不完全接上 */
+.voice-favorite {
+  position: relative;
+  width: fit-content;
+  margin-block: 0.5em;
+  padding: 0.15em 0.7em;
+  font-size: 0.875em;
+  line-height: 1.4;
+}
+
+.voice-favorite::before {
+  position: absolute;
+  inset: -0.25em -0.2em;
+  pointer-events: none;
+  content: '';
+  background: var(--voice-mark);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40' preserveAspectRatio='none'%3E%3Cpath d='M9 23C5 11 33 4 58 5s41 7 37 19-33 13-56 12S3 30 9 17C14 8 31 4 47 4' fill='none' stroke='%23000' stroke-width='1.3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+    center / 100% 100% no-repeat;
+}
+
+/* 完成日期、收录日期；很久以前和有日期的一个样子 */
+.voice-date {
+  margin-block: 0.25em;
+  font-size: 0.8125em;
+  font-variant-numeric: tabular-nums;
+  color: var(--voice-faint);
+}
+
+/* 我挑的语录：页边一道铅笔线。原文属于作品，样式留给类别页 */
+.voice-quote {
+  position: relative;
+  margin: 1.25em 0;
+  padding-inline-start: 1.1em;
+}
+
+.voice-quote::before {
+  position: absolute;
+  inset-block: 0.2em;
+  inset-inline-start: 0;
+  width: 0.4em;
+  pointer-events: none;
+  content: '';
+  background: var(--voice-mark);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 100' preserveAspectRatio='none'%3E%3Cpath d='M2.2 1C1.6 30 2.6 62 1.8 99' fill='none' stroke='%23000' stroke-width='1.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+    center / 100% 100% no-repeat;
+}
+
+.voice-quote blockquote {
+  margin: 0;
+}
+
+.voice-quote blockquote p {
+  margin: 0;
+}
+
+.voice-quote-translation {
+  margin-block: 0.35em 0;
+  font-size: 0.9375em;
+}
+
+/* 说话人和出处是作品的资料，不是我的声音，所以用外壳的灰 */
+.voice-quote figcaption {
+  margin-block-start: 0.35em;
+  font-size: 0.75em;
+  color: var(--shell-muted);
+}
+
+/* 长评：日记一样的长段落 */
+.voice-long-review {
+  max-width: 34em;
+  font-size: 1.0625em;
+  line-height: 1.9;
+  text-wrap: pretty;
+}
+
+.voice-long-review > :first-child {
+  margin-block-start: 0;
+}
+
+.voice-long-review p {
+  margin-block: 0 1em;
+}
+
+/* 中文不用斜体：强调写成字下面的着重号 */
+.voice-long-review em {
+  font-style: normal;
+  text-emphasis: filled dot;
+  text-emphasis-position: under right;
+}
+
+.voice-long-review a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+}

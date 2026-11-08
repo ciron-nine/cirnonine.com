@@ -9,19 +9,19 @@ interface Props {
 const { siteMusic } = Astro.props;
 ---
 
-<div class="player" data-site-music={siteMusic} transition:persist="player">
+<div class="player" data-site-music={siteMusic} transition:persist="player" transition:animate="none">
   <!-- 换曲时一个 audio 淡出、另一个淡入；连着换时播放器会再加一个，免得还在淡出的那首被掐断 -->
   <audio preload="auto"></audio>
   <audio preload="auto"></audio>
   <p class="now-playing" aria-live="polite" hidden>
-    <span>点播中：<span class="now-playing-title"></span></span>
+    <span class="now-playing-label">点播中：<span class="now-playing-title"></span></span>
     <button type="button" class="stop">停止</button>
   </p>
   <button type="button" class="mute" aria-pressed="false">静音</button>
 
   <dialog class="entry" aria-labelledby="entry-title">
     <form method="dialog">
-      <p id="entry-title" class="entry-title">cirnonine</p>
+      <p id="entry-title" class="entry-title" translate="no">cirnonine</p>
       <button>进入</button>
     </form>
   </dialog>
@@ -44,49 +44,82 @@ const { siteMusic } = Astro.props;
 </script>
 
 <style>
+  /* 右下角一小块，和正文一样安静；不随换页淡出淡入 */
   .player {
     position: fixed;
-    right: 1rem;
-    bottom: 1rem;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    z-index: 10;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
     gap: 0.5rem;
     max-width: calc(100vw - 2rem);
+    font-size: 0.8125rem;
+    line-height: 1.4;
   }
 
   .now-playing {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    min-width: 0;
     margin: 0;
-    padding: 0.25rem 0 0.25rem 0.75rem;
-    font-size: 0.875rem;
+    padding: 0.25rem 0.25rem 0.25rem 0.75rem;
     color: var(--shell-muted);
     background: var(--shell-bg);
+    border: 1px solid var(--shell-rule);
   }
 
   .now-playing[hidden] {
     display: none;
   }
 
+  .now-playing-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .now-playing-title {
+    color: var(--shell-fg);
+  }
+
   .mute,
   .stop {
-    font: inherit;
-    font-size: 0.875rem;
-    color: var(--shell-muted);
-    background: var(--shell-bg);
-    border: 1px solid currentColor;
+    min-height: 2rem;
     padding: 0.25rem 0.75rem;
+    font: inherit;
+    color: var(--shell-muted);
     cursor: pointer;
+    background: var(--shell-bg);
+    border: 1px solid var(--shell-rule);
+    transition:
+      color 120ms,
+      border-color 120ms;
+    touch-action: manipulation;
   }
 
-  .mute[aria-pressed='true'] {
+  .mute:hover,
+  .stop:hover {
     color: var(--shell-fg);
-    text-decoration: line-through;
+    border-color: currentColor;
   }
 
+  .stop {
+    border-color: transparent;
+  }
+
+  /* 静音中：黑白反过来，一眼看得出声音关着 */
+  .mute[aria-pressed='true'] {
+    color: var(--shell-bg);
+    background: var(--shell-fg);
+    border-color: var(--shell-fg);
+  }
+
+  /* 进入页：只有站名和一个按钮 */
   .entry {
     box-sizing: border-box;
     width: 100%;
@@ -98,28 +131,54 @@ const { siteMusic } = Astro.props;
     border: 0;
     color: var(--shell-fg);
     background: var(--shell-bg);
+    overscroll-behavior: contain;
+  }
+
+  .entry::backdrop {
+    background: var(--shell-bg);
   }
 
   .entry form {
     display: grid;
     place-content: center;
     justify-items: center;
-    gap: 2rem;
+    gap: 2.5rem;
     height: 100%;
   }
 
   .entry-title {
     margin: 0;
-    font-size: 1.5rem;
-    letter-spacing: 0.2em;
+    font-size: 1.25rem;
+    letter-spacing: 0.32em;
+    /* 字距加在每个字后面，往回挪一点让它看起来居中 */
+    margin-inline-end: -0.32em;
   }
 
   .entry button {
+    min-height: 2.75rem;
+    padding: 0.5rem 2.25rem;
     font: inherit;
+    font-size: 0.875rem;
+    letter-spacing: 0.2em;
     color: inherit;
+    cursor: pointer;
     background: none;
     border: 1px solid currentColor;
-    padding: 0.5rem 2rem;
-    cursor: pointer;
+    transition:
+      color 120ms,
+      background-color 120ms;
+  }
+
+  .entry button:hover {
+    color: var(--shell-bg);
+    background: var(--shell-fg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mute,
+    .stop,
+    .entry button {
+      transition: none;
+    }
   }
 </style>

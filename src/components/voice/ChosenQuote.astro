@@ -1,0 +1,33 @@
+---
+/**
+ * 我的声音：我挑的语录。原文属于作品（日文原文用日文字体），类别页可以按自己的样式改写原文的外观；
+ * 「是我挑的」这件事用同一个铅笔记号标出来，中文译文也是我的声音。
+ */
+interface Props {
+  original: string;
+  translation?: string;
+  /** 说话人；歌词没有 */
+  speaker?: string;
+  /** 出处：第几章、哪一幕 */
+  source?: string;
+  /** 原文的语言，见 quoteLang() */
+  lang?: 'ja';
+}
+const { original, translation, speaker, source, lang } = Astro.props;
+---
+
+<figure class="voice-quote">
+  <blockquote lang={lang}>
+    <p>{original}</p>
+  </blockquote>
+  {translation && <p class="voice voice-quote-translation">{translation}</p>}
+  {
+    (speaker || source) && (
+      <figcaption>
+        {speaker}
+        {speaker && source && ' · '}
+        {source}
+      </figcaption>
+    )
+  }
+</figure>

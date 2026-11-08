@@ -1,0 +1,9 @@
+---
+/** 我的声音：短评。一句话，短到一个词也可以 */
+interface Props {
+  text: string;
+}
+const { text } = Astro.props;
+---
+
+<p class="voice voice-short-review">{text}</p>

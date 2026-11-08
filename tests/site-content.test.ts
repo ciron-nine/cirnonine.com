@@ -1,6 +1,6 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, statSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { BUILD_TIMEOUT, buildSiteContent, type BuildResult } from './build';
+import { BUILD_TIMEOUT, buildSiteContent, fontFaces, type BuildResult } from './build';
 
 /** 每个类别的页面路由和它在 src/content/ 下的记录目录 */
 const CATEGORIES = [
@@ -41,5 +41,21 @@ describe('站点的真实内容', () => {
         .map((article) => article.querySelector('h2, h3')!.text);
       expect(withoutCover).toEqual([]);
     });
+  });
+
+  it('每一页要下载的字体都在几十 KB 以内', () => {
+    // 上限的算法偏保守：页面上任何一个字落在某个字体文件的 unicode-range 里，就算这个文件要下载
+    // （浏览器只为真正用那种字体显示的字下载，实际更少）
+    const BUDGET_KB = 120;
+    const faces = fontFaces(build).map((face) => ({ ...face, kb: statSync(`${build.outDir}${face.src}`).size / 1024 }));
+    for (const route of build.routes('')) {
+      const page = build.page(route);
+      page.querySelectorAll('script, style').forEach((el) => el.remove());
+      const codes = new Set([...page.querySelector('body')!.text].map((char) => char.codePointAt(0)!));
+      const kb = faces
+        .filter((face) => face.ranges.some(([from, to]) => [...codes].some((code) => code >= from && code <= to)))
+        .reduce((sum, face) => sum + face.kb, 0);
+      expect(kb, route || '首页').toBeLessThan(BUDGET_KB);
+    }
   });
 });

@@ -7,6 +7,8 @@ import { ClientRouter } from 'astro:transitions';
 import Player from './Player.astro';
 import { SITE_MUSIC } from '../../lib/background-music';
 import type { PageMusic } from '../../lib/playback';
+import { FONT_FACES_HREF } from '../../fonts/roles';
+import '../voice/voice.css';
 
 interface Props {
   title: string;
@@ -26,13 +28,19 @@ const NAV = [
   { href: '/music/', label: '音乐' },
 ];
 const here = Astro.url.pathname;
+/** 类别页本身是当前页；类别下的详情页只标出所在的类别 */
+const current = (href: string) => (here === href ? 'page' : here.startsWith(href) ? 'true' : undefined);
 ---
 
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f7f6f2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#131312" media="(prefers-color-scheme: dark)" />
     <title>{title}</title>
+    <link rel="stylesheet" href={FONT_FACES_HREF} />
     <ClientRouter />
   </head>
   <body
@@ -40,12 +48,15 @@ const here = Astro.url.pathname;
     data-category-music={music !== 'none' ? music.category : undefined}
     data-work-music={music !== 'none' ? music.work : undefined}
   >
-    <header class="shell-header">
-      <a class="mark" href="/">cirnonine</a>
+    <!-- 每一页的 <main> 都要写 id="main"，键盘用户可以直接跳过导航 -->
+    <a class="skip-link" href="#main">跳到正文</a>
+    <!-- 换页时站标和导航原地不动，只有内容区淡出淡入 -->
+    <header class="shell-header" transition:name="shell-header" transition:animate="none">
+      <a class="mark" href="/" translate="no">cirnonine</a>
       <nav aria-label="类别">
         {
           NAV.map(({ href, label }) => (
-            <a href={href} aria-current={here.startsWith(href) ? 'page' : undefined}>
+            <a href={href} aria-current={current(href)}>
               {label}
             </a>
           ))
@@ -60,56 +71,176 @@ const here = Astro.url.pathname;
 <style is:global>
   :root {
     color-scheme: light dark;
-    --shell-fg: light-dark(#1a1a1a, #e8e8e8);
-    --shell-muted: light-dark(#6b6b6b, #9a9a9a);
-    --shell-bg: light-dark(#fafaf8, #121212);
+    /* 字体名和回退顺序与 src/fonts/roles.ts 一致 */
+    --font-body:
+      'cirnonine-body', system-ui, -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans CJK SC',
+      'Microsoft YaHei', sans-serif;
+    --font-ja: 'cirnonine-ja', 'cirnonine-body', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+
+    /* 外壳只用黑白灰，颜色留给作品 */
+    --shell-fg: light-dark(#161616, #e9e7e2);
+    --shell-muted: light-dark(#66645f, #9c9a94);
+    --shell-bg: light-dark(#f7f6f2, #131312);
+    --shell-rule: light-dark(rgb(0 0 0 / 0.14), rgb(255 255 255 / 0.16));
+    --shell-focus: light-dark(#161616, #e9e7e2);
+
+    /* 页面转场：旧页面先淡出，新页面再淡入，不移动 */
+    --shell-fade-out: 140ms;
+    --shell-fade-in: 220ms;
   }
 
   body {
     margin: 0;
-    padding: 0 1rem 4rem;
+    padding: 0 max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-right)) 6rem
+      max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-left));
     color: var(--shell-fg);
     background: var(--shell-bg);
-    font-family:
-      system-ui,
-      -apple-system,
-      'PingFang SC',
-      'Hiragino Sans GB',
-      'Noto Sans CJK SC',
-      'Microsoft YaHei',
-      sans-serif;
-    line-height: 1.6;
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.7;
+    text-autospace: normal;
+    -webkit-text-size-adjust: 100%;
+    /* 点按时不闪系统的高亮块，反馈交给 hover 和焦点样式 */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a,
+  button {
+    touch-action: manipulation;
+  }
+
+  /* 日文（作品的日文原名、日文语录原文）用日文字体；我的声音里的日文另见 voice.css */
+  :lang(ja) {
+    font-family: var(--font-ja);
+  }
+
+  /* 外壳的几种字体都只有一个字重：标题靠字号区分，不让浏览器硬加粗 */
+  h1,
+  h2,
+  h3 {
+    font-weight: 400;
+    text-wrap: balance;
+  }
+
+  #main {
+    scroll-margin-top: 1rem;
+  }
+
+  /* 链接默认跟正文同色，只靠一道细下划线；类别页可以改 */
+  a {
+    color: inherit;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--shell-focus);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    color: var(--shell-bg);
+    background: var(--shell-fg);
+  }
+
+  @keyframes shell-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes shell-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  ::view-transition-old(root) {
+    animation: var(--shell-fade-out) ease-out both shell-fade-out;
+  }
+
+  ::view-transition-new(root) {
+    animation: var(--shell-fade-in) ease-in var(--shell-fade-out) both shell-fade-in;
+  }
+
+  /* 减少动态效果：换页时直接换，不淡出淡入（ClientRouter 也会关掉它自己的动画） */
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
+    }
   }
 </style>
 
 <style>
+  /* 平时藏着，Tab 到它时出现在左上角 */
+  .skip-link {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 20;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--shell-bg);
+    background: var(--shell-fg);
+    transform: translateY(-200%);
+  }
+
+  .skip-link:focus-visible {
+    transform: none;
+  }
+
   .shell-header {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     justify-content: space-between;
-    gap: 0.5rem 1.5rem;
-    padding: 1rem 0;
+    gap: 0.5rem 2rem;
+    padding: 1.25rem 0 1rem;
     font-size: 0.875rem;
+    line-height: 1.4;
   }
 
   .shell-header a {
     color: var(--shell-muted);
     text-decoration: none;
+    transition: color 120ms;
   }
 
   .shell-header a:hover,
-  .shell-header a[aria-current='page'] {
+  .shell-header a[aria-current] {
     color: var(--shell-fg);
   }
 
   .mark {
-    letter-spacing: 0.2em;
+    font-size: 0.8125rem;
+    letter-spacing: 0.24em;
   }
 
   nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem 1rem;
+    gap: 0.25rem 1.25rem;
+  }
+
+  /* 当前所在的类别：底下一道细线 */
+  nav a[aria-current] {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.45em;
+  }
+
+  /* 手机上点得到：每个链接上下多留一点 */
+  @media (pointer: coarse) {
+    .shell-header a {
+      padding-block: 0.5rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shell-header a {
+      transition: none;
+    }
   }
 </style>
