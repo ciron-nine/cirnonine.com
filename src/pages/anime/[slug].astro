@@ -4,9 +4,14 @@ import { Image } from 'astro:assets';
 import Shell from '../../components/shell/Shell.astro';
 import { CATEGORY_MUSIC } from '../../lib/background-music';
 import { coverColor } from '../../lib/cover-color';
-import { completionDateTimeAttribute, formatCompletionDate } from '../../lib/completion-date';
 import { detailPage } from '../../lib/detail-page';
 import { formatPremiere } from '../../lib/anime-premiere';
+import { originalTitleLang, quoteLang } from '../../lib/original-title';
+import RecordDate from '../../components/voice/RecordDate.astro';
+import Favorite from '../../components/voice/Favorite.astro';
+import ShortReview from '../../components/voice/ShortReview.astro';
+import ChosenQuote from '../../components/voice/ChosenQuote.astro';
+import LongReview from '../../components/voice/LongReview.astro';
 
 export async function getStaticPaths() {
   const anime = await getCollection('anime');
@@ -22,43 +27,32 @@ interface Props {
 const { anime } = Astro.props;
 const { data } = anime;
 const { Content } = await render(anime);
-const datetime = completionDateTimeAttribute(data.completed);
-const label = formatCompletionDate(data.completed);
 const color = data.cover && (await coverColor(data.cover));
 ---
 
 <Shell title={`${data.originalTitle} · 动画 · cirnonine`} music={{ category: CATEGORY_MUSIC.anime }}>
-  <main style={color ? `--cover-color: ${color}` : undefined}>
+  <main id="main" style={color ? `--cover-color: ${color}` : undefined}>
     <p><a href="/anime/">动画</a></p>
     {data.cover && <Image src={data.cover} alt="" width={480} />}
-    <h1>{data.originalTitle}</h1>
+    <h1 lang={originalTitleLang(data)}>{data.originalTitle}</h1>
     {data.translatedTitle && <p>{data.translatedTitle}</p>}
     <p>
       {formatPremiere(data.year, data.season)}
       {data.episodes && <> · {data.episodes} 集</>}
       · {data.studio}
     </p>
-    <p>{datetime ? <time datetime={datetime}>{label}</time> : label}</p>
-    {data.favorite && <p>心头好</p>}
-    {data.shortReview && <p>{data.shortReview}</p>}
+    <RecordDate date={data.completed} />
+    {data.favorite && <Favorite />}
+    {data.shortReview && <ShortReview text={data.shortReview} />}
     <article>
-      <Content />
+      <LongReview><Content /></LongReview>
     </article>
     {
       data.quotes.length > 0 && (
         <section>
           <h2>语录</h2>
           {data.quotes.map((quote) => (
-            <figure>
-              <blockquote>
-                <p>{quote.original}</p>
-              </blockquote>
-              {quote.translation && <p>{quote.translation}</p>}
-              <figcaption>
-                {quote.speaker}
-                {quote.source && <> · {quote.source}</>}
-              </figcaption>
-            </figure>
+            <ChosenQuote {...quote} lang={quoteLang(quote.original, data)} />
           ))}
         </section>
       )

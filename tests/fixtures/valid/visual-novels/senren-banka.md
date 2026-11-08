@@ -1,5 +1,6 @@
 ---
 originalTitle: 千恋＊万花
+lang: ja
 slug: senren-banka
 brand: ゆずソフト
 writers:

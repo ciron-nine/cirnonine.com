@@ -31,6 +31,15 @@ describe('外壳', () => {
     }
   });
 
+  it('每一页都能用键盘跳过导航，直接到正文', () => {
+    for (const route of build.routes('')) {
+      const page = build.page(route);
+      const skip = page.querySelector('body > a[href="#main"]');
+      expect(skip?.text.trim(), route).toBe('跳到正文');
+      expect(page.querySelector('main#main'), route).not.toBeNull();
+    }
+  });
+
   it('每一页都有静音按钮和进入页', () => {
     for (const route of build.routes('')) {
       const page = build.page(route);

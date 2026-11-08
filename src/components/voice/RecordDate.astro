@@ -1,0 +1,19 @@
+---
+/**
+ * 我的声音：完成日期（单曲是收录日期）。精度按记录写的来，记不清的显示「很久以前」，样子和有日期的一样。
+ */
+import {
+  completionDateTimeAttribute,
+  formatCompletionDate,
+  type CompletionDate,
+} from '../../lib/completion-date';
+
+interface Props {
+  date: CompletionDate;
+}
+const { date } = Astro.props;
+const datetime = completionDateTimeAttribute(date);
+const label = formatCompletionDate(date);
+---
+
+<p class="voice voice-date">{datetime ? <time datetime={datetime}>{label}</time> : label}</p>

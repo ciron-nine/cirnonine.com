@@ -62,3 +62,40 @@ function runAstroBuild(contentRoot: string, outDir: string): BuildResult {
     },
   };
 }
+
+/** 外壳引用的字体样式表，由构建按页面实际用字生成 */
+export const FONT_FACES = '/fonts/faces.css';
+
+export interface FontFace {
+  family: string;
+  /** 字体文件的地址，例如 /fonts/body-0-1a2b3c4d.woff2 */
+  src: string;
+  /** unicode-range 里的码位区间，闭区间 */
+  ranges: [number, number][];
+}
+
+/** 读出构建生成的字体样式表里的每一条 @font-face */
+export function fontFaces(build: BuildResult): FontFace[] {
+  const css = readFileSync(`${build.outDir}${FONT_FACES}`, 'utf8');
+  return [...css.matchAll(/@font-face\s*{([^}]*)}/g)].map(([, body]) => {
+    const family = /font-family:\s*['"]?([^'";]+)/.exec(body)![1];
+    const src = /url\(['"]?([^'")]+)/.exec(body)![1];
+    const ranges = /unicode-range:([^;}]+)/
+      .exec(body)![1]
+      .split(',')
+      .map((range): [number, number] => {
+        const [from, to = from] = range.trim().replace(/^U\+/i, '').split('-');
+        return [parseInt(from, 16), parseInt(to, 16)];
+      });
+    return { family, src, ranges };
+  });
+}
+
+/** text 里有哪些字（不计空白）不在 family 这种字体的任何一个 unicode-range 里 */
+export function uncovered(faces: FontFace[], family: string, text: string): string[] {
+  const ranges = faces.filter((face) => face.family === family).flatMap((face) => face.ranges);
+  return [...new Set(text.replace(/\s/g, ''))].filter((char) => {
+    const code = char.codePointAt(0)!;
+    return !ranges.some(([from, to]) => code >= from && code <= to);
+  });
+}

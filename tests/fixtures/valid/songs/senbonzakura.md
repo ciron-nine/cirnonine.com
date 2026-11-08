@@ -1,5 +1,6 @@
 ---
 originalTitle: 千本桜
+lang: ja
 translatedTitle: 千本樱
 slug: senbonzakura
 singer: 初音ミク

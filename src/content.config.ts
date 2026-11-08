@@ -4,6 +4,7 @@ import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { ANIME_SEASONS } from './lib/anime-premiere';
 import { completionDateSchema } from './lib/completion-date';
+import { ORIGINAL_TITLE_LANGS } from './lib/original-title';
 
 /** 内容目录。构建产物测试用 CONTENT_ROOT 指向 tests/fixtures/<name>。 */
 const contentRoot = process.env.CONTENT_ROOT ?? 'src/content';
@@ -19,6 +20,11 @@ const originalTitle = z
   .string({ error: '缺少原名（作品首次发行时的官方标题）' })
   .trim()
   .min(1, '原名不能为空');
+
+/** 原名的语言：带假名的自动算日文，全是汉字的日文原名（群青、千本桜）写 lang: ja */
+const originalTitleLang = z
+  .enum(ORIGINAL_TITLE_LANGS, { error: '原名的语言（lang）只能写 ja：全是汉字的日文原名才需要写，带假名的会自动识别' })
+  .optional();
 
 /**
  * 记录里的 series 字段。Astro 自己的 reference() 碰到不存在的系列只打日志不让构建失败，
@@ -56,6 +62,7 @@ const series = defineCollection({
   loader: glob({ pattern: '*.{yaml,yml}', base: seriesDir }),
   schema: z.strictObject({
     originalTitle,
+    lang: originalTitleLang,
     translatedTitle: z.string().optional(),
   }),
 });
@@ -64,6 +71,7 @@ const series = defineCollection({
 function recordFields(image: ImageFunction) {
   return {
     originalTitle,
+    lang: originalTitleLang,
     translatedTitle: z.string().optional(),
     slug,
     /** 封面：放在记录旁边的图片，写相对路径，例如 ./hotline-miami.jpg */
