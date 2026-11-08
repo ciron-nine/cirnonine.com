@@ -1,9 +1,10 @@
 ---
 /**
  * PROTOTYPE 变体 A：文字自画像（参考 Feltron 首页）。
- * 整页就是一大段第一人称的话：作品的原名就是链接，「玩完了」「读完了」这些动词是四个类别的入口，
- * 悬停一个动词时其余类别的作品变淡。头像嵌在第一句话里，旁边两个小箭头往回翻，不另作说明。
- * 没有图片网格、没有卡片，只有字。
+ * 版式是「边栏 + 正文栏」两栏：边栏放头像、四个动词（类别入口）和小标签，正文栏是字。
+ * 每个类别一段，整段都是作品的原名，组成这个人的材料；悬停一个动词，其余类别退后；
+ * 悬停一个原名，它的译名和日期写在这一段的边栏里。手机上边栏收到每段的上方。
+ * 原名统一用一种明朝体，「我的声音」用文楷，同一行里不混第三种字体。
  */
 import type { HomeData, HomeRecord } from './home-data';
 import AvatarPlaceholder from './AvatarPlaceholder.astro';
@@ -13,9 +14,9 @@ interface Props {
   data: HomeData;
 }
 const { data } = Astro.props;
-const [hello, ...rest] = data.intro;
+const [hello, opening, closing] = data.intro;
 
-/** 同一系列的几部挨在一起，用斜线连成一组，组之间用顿号 */
+/** 同一系列的几部挨在一起成一组，组内用斜线，组之间用间隔点；分隔符用不换行空格粘在前一个原名后面，不会出现在行首 */
 function groupBySeries(records: HomeRecord[]): HomeRecord[][] {
   const groups: HomeRecord[][] = [];
   const bySeries = new Map<string, HomeRecord[]>();
@@ -33,16 +34,17 @@ function groupBySeries(records: HomeRecord[]): HomeRecord[][] {
   return groups;
 }
 
-const caption = (r: HomeRecord, label: string) =>
-  [r.translatedTitle, label, r.dateLabel, r.favorite ? '心头好' : undefined].filter(Boolean).join(' · ');
+const gloss = (r: HomeRecord) =>
+  [r.translatedTitle, r.dateLabel, r.favorite ? '心头好' : undefined].filter(Boolean).join('\n');
+const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
 ---
 
 <article class="portrait">
-  <p class="lede">
-    <span class="avatar-inline" data-avatar-history>
+  <section class="row opening">
+    <div class="margin" data-avatar-history>
       {
         data.avatars.map((avatar) => (
-          <span class="slide" data-avatar-slide>
+          <div class="slide" data-avatar-slide>
             {avatar.from.record ? (
               <a href={avatar.from.record.href}>
                 <AvatarPlaceholder avatar={avatar} class="face" />
@@ -50,138 +52,159 @@ const caption = (r: HomeRecord, label: string) =>
             ) : (
               <AvatarPlaceholder avatar={avatar} class="face" />
             )}
-          </span>
+          </div>
         ))
       }
-      <span class="avatar-steps">
+      <p class="avatar-steps">
         <button type="button" data-avatar-step="1" aria-label="往回翻一个头像">‹</button>
         <button type="button" data-avatar-step="-1" aria-label="往后翻一个头像">›</button>
-      </span>
-    </span>
-    <span class="voice">{hello}</span>
-  </p>
-
-  <p class="material">
-    {
-      data.categories.map((category, ci) => (
-        <span class="clause" data-cat={category.key}>
-          <span class="voice">{ci === 0 ? '我' : ci === data.categories.length - 1 ? '；还' : '；'}</span>
-          <a class="door" href={category.href} data-cat={category.key} data-caption={`${category.label} · ${category.records.length}`}>
-            {category.verb}
-            <sup>{category.records.length}</sup>
-          </a>
-          {groupBySeries(category.records).map((group, gi) => (
-            <>
-              {gi > 0 && <span class="sep">、</span>}
-              <span class="group">
-                {group.map((record, ri) => (
-                  <>
-                    {ri > 0 && <span class="slash"> / </span>}
-                    <a
-                      class:list={['work', { favorite: record.favorite }]}
-                      href={record.href}
-                      lang={record.lang}
-                      data-cat={category.key}
-                      data-caption={caption(record, category.label)}
-                    >
-                      {record.originalTitle}
-                    </a>
-                  </>
-                ))}
-              </span>
-            </>
-          ))}
-        </span>
-      ))
-    }
-    <span class="voice">。</span>
-  </p>
-
-  <p class="caption" data-portrait-caption aria-live="polite">
-    <span class="hint">把指针停在一个名字上</span>
-  </p>
-
-  {rest.map((paragraph) => <p class="aside voice">{paragraph}</p>)}
-
-  <section class="quote" aria-label="随机一句语录">
-    <p class="voice small">随手翻到的一句：</p>
-    <RandomQuote quotes={data.quotes} />
+      </p>
+    </div>
+    <div class="text">
+      <p class="hello voice">{hello}</p>
+      {opening && <p class="prose voice">{opening}</p>}
+    </div>
   </section>
 
-  <p class="recent voice" aria-label="最近的记录">
-    最近记下的五个是
+  <div class="stanzas">
     {
-      data.recent.map((record, i) => (
-        <>
-          {i > 0 && (i === data.recent.length - 1 ? '，和' : '、')}
-          <a class="work" href={record.href} lang={record.lang}>
-            {record.originalTitle}
-          </a>
-          <span class="date">
-            {record.datetime ? <time datetime={record.datetime}>{record.dateLabel}</time> : record.dateLabel}
-          </span>
-        </>
+      data.categories.map((category) => (
+        <section class="row stanza" aria-label={category.label}>
+          <div class="margin">
+            <a class="door" href={category.href}>
+              <span class="verb voice">{category.verb}</span>
+              <span class="count">{category.records.length}</span>
+            </a>
+            <p class="gloss voice" data-gloss aria-hidden="true" />
+          </div>
+          <p class="text titles">
+            {groupBySeries(category.records).map((group, gi) => (
+              <>
+                {gi > 0 && (
+                  <span class="sep" aria-hidden="true">
+                    {'\u00a0· '}
+                  </span>
+                )}
+                <span class="group">
+                  {group.map((record, ri) => (
+                    <>
+                      {ri > 0 && (
+                        <span class="slash" aria-hidden="true">
+                          {'\u00a0／ '}
+                        </span>
+                      )}
+                      <a
+                        class:list={['work', { favorite: record.favorite, short: Array.from(record.originalTitle).length <= 10 }]}
+                        href={record.href}
+                        lang={record.lang}
+                        data-gloss-text={gloss(record)}
+                      >
+                        {record.originalTitle}
+                      </a>
+                    </>
+                  ))}
+                </span>
+              </>
+            ))}
+          </p>
+        </section>
       ))
     }
-    。
-  </p>
+  </div>
 
+  {
+    closing && (
+      <section class="row">
+        <div class="margin" />
+        <p class="text prose voice">{closing}</p>
+      </section>
+    )
+  }
+
+  <section class="row aside" aria-label="随机一句语录">
+    <p class="margin label voice">随手一句</p>
+    <div class="text">
+      <RandomQuote quotes={data.quotes} />
+    </div>
+  </section>
+
+  <section class="row aside" aria-label="最近完成">
+    <p class="margin label voice">最近</p>
+    <ol class="text recent">
+      {
+        data.recent.map((record) => (
+          <li>
+            <a class="work" href={record.href} lang={record.lang}>
+              {record.originalTitle}
+            </a>
+            <span class="meta voice">
+              {CATEGORY_LABEL[record.category]} ·{' '}
+              {record.datetime ? <time datetime={record.datetime}>{record.dateLabel}</time> : record.dateLabel}
+            </span>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
 </article>
 
 <script>
-  /** 悬停或聚焦一个名字时，把它的译名、类别、日期写到下方那一行 */
+  /** 悬停或聚焦一个原名时，把译名和日期写进这一段的边栏；离开这一段就清掉 */
   document.addEventListener('astro:page-load', () => {
-    const portrait = document.querySelector('.portrait');
-    const caption = portrait?.querySelector('[data-portrait-caption]');
-    if (!portrait || !caption) return;
-    const hint = caption.innerHTML;
-    const show = (event: Event) => {
-      const link = (event.target as HTMLElement).closest<HTMLElement>('[data-caption]');
-      caption.innerHTML = '';
-      if (link) caption.textContent = link.dataset.caption ?? '';
-      else caption.innerHTML = hint;
-    };
-    portrait.addEventListener('pointerover', show);
-    portrait.addEventListener('focusin', show);
+    for (const stanza of document.querySelectorAll<HTMLElement>('.portrait .stanza')) {
+      const gloss = stanza.querySelector<HTMLElement>('[data-gloss]');
+      if (!gloss) continue;
+      const show = (event: Event) => {
+        const work = (event.target as Element).closest<HTMLElement>('[data-gloss-text]');
+        if (work) gloss.textContent = work.dataset.glossText ?? '';
+      };
+      stanza.addEventListener('pointerover', show);
+      stanza.addEventListener('focusin', show);
+      stanza.addEventListener('pointerleave', () => (gloss.textContent = ''));
+      stanza.addEventListener('focusout', () => (gloss.textContent = ''));
+    }
   });
 </script>
 
 <style>
   .portrait {
-    max-width: 68rem;
+    --a-title: 'Shippori Mincho', 'Songti SC', 'Noto Serif CJK SC', serif;
+    --a-rule: color-mix(in srgb, var(--shell-fg) 18%, transparent);
+
+    max-width: 64rem;
     margin: 0 auto;
-    padding: clamp(1.5rem, 6vw, 5rem) 0 2rem;
+    padding: clamp(1.5rem, 6vw, 5rem) 0 3rem;
   }
 
   .voice {
     font-family: var(--proto-voice);
   }
 
-  .lede,
-  .material {
-    margin: 0;
-    font-size: clamp(1.5rem, 0.9rem + 2.8vw, 3.25rem);
-    line-height: 1.3;
-    text-wrap: pretty;
+  a {
+    color: inherit;
+    text-decoration: none;
   }
 
-  .lede {
-    display: flex;
-    align-items: center;
-    gap: 0.4em;
-    margin-bottom: 0.4em;
-  }
-
-  /* 头像嵌在第一句话里，和字一样高一点点 */
-  .avatar-inline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.15em;
-  }
-
-  .slide :global(.face) {
+  /* 两栏：窄边栏 + 正文栏，所有段落都对齐在同一条正文左边线上 */
+  .row {
     display: grid;
-    width: 1.3em;
+    grid-template-columns: 8.5rem minmax(0, 46rem);
+    column-gap: clamp(1.5rem, 4vw, 3.5rem);
+  }
+
+  .margin {
+    min-width: 0;
+  }
+
+  .text {
+    min-width: 0;
+    margin: 0;
+  }
+
+  /* 开头：头像在边栏，正文栏是「我是 cirnonine。」和一段话 */
+  .opening {
+    align-items: start;
+    margin-bottom: clamp(3rem, 8vw, 5.5rem);
   }
 
   .slide[hidden] {
@@ -192,16 +215,22 @@ const caption = (r: HomeRecord, label: string) =>
     display: block;
   }
 
+  .slide :global(.face) {
+    display: grid;
+    width: 4.5rem;
+  }
+
   .avatar-steps {
-    display: inline-flex;
-    flex-direction: column;
+    display: flex;
+    gap: 0.25rem;
+    margin: 0.35rem 0 0;
   }
 
   .avatar-steps button {
-    padding: 0 0.3em;
+    padding: 0 0.35rem;
     font: inherit;
-    font-size: 0.4em;
-    line-height: 1.2;
+    font-size: 1rem;
+    line-height: 1;
     color: var(--shell-muted);
     cursor: pointer;
     background: none;
@@ -213,142 +242,195 @@ const caption = (r: HomeRecord, label: string) =>
     opacity: 0.25;
   }
 
-  .material .voice,
+  .hello {
+    margin: 0 0 1.25rem;
+    font-size: clamp(2rem, 1.2rem + 3.2vw, 3.75rem);
+    line-height: 1.15;
+  }
+
+  .prose {
+    max-width: 30em;
+    margin: 0;
+    font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+    line-height: 1.9;
+    text-wrap: pretty;
+  }
+
+  /* 四段材料：边栏是动词（入口）和件数，正文栏是一整段原名 */
+  .stanza {
+    padding: 1.5rem 0 1.75rem;
+    border-top: 1px solid var(--a-rule);
+    transition: opacity 0.25s;
+  }
+
+  .stanza:last-child {
+    border-bottom: 1px solid var(--a-rule);
+  }
+
+  .stanzas:has(.door:hover, .door:focus-visible) .stanza:not(:has(.door:hover, .door:focus-visible)) {
+    opacity: 0.2;
+  }
+
+  .door {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: baseline;
+  }
+
+  .verb {
+    font-size: 1.25rem;
+    border-bottom: 2px solid currentColor;
+  }
+
+  .count {
+    font-family: var(--proto-mono);
+    font-size: 0.75rem;
+    color: var(--shell-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .door:hover .verb,
+  .door:focus-visible .verb {
+    color: var(--shell-bg);
+    background: var(--shell-fg);
+  }
+
+  .door:focus-visible {
+    outline: none;
+  }
+
+  /* 悬停一个原名时出现在边栏里的译名和日期 */
+  .gloss {
+    min-height: 3em;
+    margin: 0.75rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--shell-muted);
+    white-space: pre-line;
+  }
+
+  .titles {
+    font-family: var(--a-title);
+    font-size: clamp(1.1875rem, 0.95rem + 1.1vw, 1.75rem);
+    line-height: 1.75;
+    text-wrap: pretty;
+    line-break: strict;
+  }
+
+  .work {
+    transition: opacity 0.2s;
+  }
+
+  .work:lang(ja) {
+    word-break: auto-phrase;
+  }
+
+  /* 短的原名不拆开换行 */
+  .short {
+    white-space: nowrap;
+  }
+
+  .work:hover,
+  .work:focus-visible {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .favorite::after {
+    margin-left: 0.1em;
+    font-size: 0.55em;
+    vertical-align: super;
+    content: '＊';
+  }
+
   .sep,
   .slash {
     color: var(--shell-muted);
   }
 
   .slash {
-    font-size: 0.6em;
+    font-size: 0.7em;
   }
 
-  a {
-    color: inherit;
-    text-decoration: none;
+  /* 结尾那段话、随手一句、最近：仍然对齐在正文栏 */
+  .row:not(.stanza, .opening) {
+    padding-top: clamp(2.5rem, 6vw, 4rem);
   }
 
-  .work {
-    font-family: var(--proto-title);
-    transition: opacity 0.2s;
-  }
-
-  .work:lang(ja) {
-    font-family: var(--proto-title-ja);
-  }
-
-  .work:hover,
-  .work:focus-visible {
-    text-decoration: underline;
-    text-decoration-thickness: 0.06em;
-    text-underline-offset: 0.15em;
-  }
-
-  .favorite::after {
-    content: '＊';
-    font-size: 0.5em;
-    vertical-align: super;
-  }
-
-  /* 四个类别的入口：动词本身，下面一道粗线，右上角是件数 */
-  .door {
-    font-family: var(--proto-voice);
-    white-space: nowrap;
-    border-bottom: 0.08em solid currentColor;
-  }
-
-  .door sup {
-    margin-left: 0.1em;
-    font-family: var(--proto-mono);
-    font-size: 0.4em;
-  }
-
-  .door:hover,
-  .door:focus-visible {
-    color: var(--shell-bg);
-    background: var(--shell-fg);
-    outline: none;
-  }
-
-  /* 悬停一个入口时，其余类别的作品退后 */
-  .material:has(.door:hover, .door:focus-visible) .clause:not(:has(.door:hover, .door:focus-visible)) {
-    opacity: 0.18;
-  }
-
-  .clause {
-    transition: opacity 0.25s;
-  }
-
-  /* 悬停时的说明：能悬停的设备上固定在左下角，触屏上不需要 */
-  .caption {
-    display: none;
-  }
-
-  @media (hover: hover) {
-    .caption {
-      position: fixed;
-      bottom: 1rem;
-      left: 1rem;
-      z-index: 10;
-      display: block;
-      max-width: calc(50vw - 9rem);
-      margin: 0;
-      padding: 0.3rem 0.6rem;
-      font-family: var(--proto-voice);
-      font-size: 0.875rem;
-      background: var(--shell-bg);
-      border: 1px solid color-mix(in srgb, var(--shell-fg) 30%, transparent);
-    }
-  }
-
-  .hint {
-    color: var(--shell-muted);
-  }
-
-  .material {
-    margin-bottom: 3rem;
-  }
-
-  .aside {
-    max-width: 30em;
-    margin: 0 0 4rem;
-    font-size: clamp(1.0625rem, 0.9rem + 0.6vw, 1.375rem);
-    line-height: 1.8;
-  }
-
-  .small {
+  .label {
+    margin: 0;
+    padding-top: 0.2rem;
     font-size: 0.875rem;
     color: var(--shell-muted);
   }
 
-  .quote {
-    margin: 0 0 4rem;
-  }
-
-  .quote .small {
-    margin: 0 0 1rem;
-  }
-
   .recent {
-    max-width: 40em;
-    margin: 0 0 1.5rem;
-    font-size: 1.0625rem;
-    line-height: 2;
+    display: grid;
+    gap: 0.6rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .recent li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+    align-items: baseline;
   }
 
   .recent .work {
-    border-bottom: 1px solid var(--shell-muted);
+    font-family: var(--a-title);
+    font-size: 1.25rem;
   }
 
-  .date {
-    margin-left: 0.25em;
-    font-size: 0.75em;
+  .meta {
+    font-size: 0.8125rem;
     color: var(--shell-muted);
   }
 
+  /* 手机：边栏收到每一段的上方，变成一行小标题 */
+  @media (max-width: 40rem) {
+    .row {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 0.75rem;
+    }
+
+    .opening .margin {
+      display: flex;
+      gap: 0.5rem;
+      align-items: end;
+    }
+
+    .slide :global(.face) {
+      width: 3.5rem;
+    }
+
+    .avatar-steps {
+      margin: 0;
+    }
+
+    .stanza {
+      padding: 1.25rem 0 1.5rem;
+    }
+
+    .gloss {
+      display: none;
+    }
+
+    .recent .meta {
+      flex-basis: 100%;
+    }
+
+    .label:empty,
+    .margin:empty {
+      display: none;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .work,
-    .clause {
+    .stanza,
+    .work {
       transition: none;
     }
   }
