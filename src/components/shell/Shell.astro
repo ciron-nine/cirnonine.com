@@ -1,0 +1,107 @@
+---
+/**
+ * 外壳：站标、导航、播放器与静音、页面转场、正文字体，包住每一页（ADR-0004）。
+ * 只放整站共用、和任何类别风格无关的东西；页面自己的内容写在 <main> 里传进来。
+ */
+import { ClientRouter } from 'astro:transitions';
+import Player from './Player.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+
+/** 全站背景音乐。暂用仓库里的占位音频，正式的音频放到 R2（media.cirnonine.com，ADR-0003） */
+const SITE_MUSIC = '/audio/placeholder-site-music.wav';
+
+const NAV = [
+  { href: '/games/', label: '游戏' },
+  { href: '/visual-novels/', label: '视觉小说' },
+  { href: '/anime/', label: '动画' },
+  { href: '/music/', label: '音乐' },
+];
+const here = Astro.url.pathname;
+---
+
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <ClientRouter />
+  </head>
+  <body>
+    <header class="shell-header">
+      <a class="mark" href="/">cirnonine</a>
+      <nav aria-label="类别">
+        {
+          NAV.map(({ href, label }) => (
+            <a href={href} aria-current={here.startsWith(href) ? 'page' : undefined}>
+              {label}
+            </a>
+          ))
+        }
+      </nav>
+    </header>
+    <Player siteMusic={SITE_MUSIC} />
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    color-scheme: light dark;
+    --shell-fg: light-dark(#1a1a1a, #e8e8e8);
+    --shell-muted: light-dark(#6b6b6b, #9a9a9a);
+    --shell-bg: light-dark(#fafaf8, #121212);
+  }
+
+  body {
+    margin: 0;
+    padding: 0 1rem 4rem;
+    color: var(--shell-fg);
+    background: var(--shell-bg);
+    font-family:
+      system-ui,
+      -apple-system,
+      'PingFang SC',
+      'Hiragino Sans GB',
+      'Noto Sans CJK SC',
+      'Microsoft YaHei',
+      sans-serif;
+    line-height: 1.6;
+  }
+</style>
+
+<style>
+  .shell-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1.5rem;
+    padding: 1rem 0;
+    font-size: 0.875rem;
+  }
+
+  .shell-header a {
+    color: var(--shell-muted);
+    text-decoration: none;
+  }
+
+  .shell-header a:hover,
+  .shell-header a[aria-current='page'] {
+    color: var(--shell-fg);
+  }
+
+  .mark {
+    letter-spacing: 0.2em;
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+  }
+</style>

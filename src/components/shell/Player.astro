@@ -1,0 +1,97 @@
+---
+import { SESSION_KEY } from './session-key';
+
+interface Props {
+  /** 全站背景音乐的地址 */
+  siteMusic: string;
+}
+
+const { siteMusic } = Astro.props;
+---
+
+<div class="player" data-site-music={siteMusic} transition:persist="player">
+  <audio loop preload="none"></audio>
+  <button type="button" aria-pressed="false">静音</button>
+
+  <dialog class="entry" aria-labelledby="entry-title">
+    <form method="dialog">
+      <p id="entry-title" class="entry-title">cirnonine</p>
+      <button>进入</button>
+    </form>
+  </dialog>
+  <script is:inline define:vars={{ key: SESSION_KEY }}>
+    // 在第一次绘制之前就把进入页打开，免得新访客先瞥见一眼页面；没有 JS 时不挡路
+    try {
+      if (!JSON.parse(sessionStorage.getItem(key) ?? 'null')?.entered) {
+        document.querySelector('dialog.entry').showModal();
+      }
+    } catch {
+      // 存储不可用时交给播放器脚本处理
+    }
+  </script>
+</div>
+
+<script>
+  import { mountPlayer } from './player';
+
+  mountPlayer(document.querySelector<HTMLElement>('.player')!);
+</script>
+
+<style>
+  .player {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+  }
+
+  .player > button {
+    font: inherit;
+    font-size: 0.875rem;
+    color: var(--shell-muted);
+    background: var(--shell-bg);
+    border: 1px solid currentColor;
+    padding: 0.25rem 0.75rem;
+    cursor: pointer;
+  }
+
+  .player > button[aria-pressed='true'] {
+    color: var(--shell-fg);
+    text-decoration: line-through;
+  }
+
+  .entry {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 1rem;
+    border: 0;
+    color: var(--shell-fg);
+    background: var(--shell-bg);
+  }
+
+  .entry form {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 2rem;
+    height: 100%;
+  }
+
+  .entry-title {
+    margin: 0;
+    font-size: 1.5rem;
+    letter-spacing: 0.2em;
+  }
+
+  .entry button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 1px solid currentColor;
+    padding: 0.5rem 2rem;
+    cursor: pointer;
+  }
+</style>

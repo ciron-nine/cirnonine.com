@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import Shell from '../../components/shell/Shell.astro';
 import SongRecord from '../../components/music/SongRecord.astro';
 import { compareCompletionDates } from '../../lib/completion-date';
 
@@ -8,24 +9,17 @@ const songs = (await getCollection('songs')).sort(
 );
 ---
 
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>音乐 · cirnonine</title>
-  </head>
-  <body>
-    <main>
-      <h1>音乐</h1>
-      <ol>
-        {
-          songs.map((song) => (
-            <li>
-              <SongRecord song={song} />
-            </li>
-          ))
-        }
-      </ol>
-    </main>
-  </body>
-</html>
+<Shell title="音乐 · cirnonine">
+  <main>
+    <h1>音乐</h1>
+    <ol>
+      {
+        songs.map((song) => (
+          <li>
+            <SongRecord song={song} />
+          </li>
+        ))
+      }
+    </ol>
+  </main>
+</Shell>

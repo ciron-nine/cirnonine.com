@@ -4,3 +4,5 @@ dist/
 tests/.output/
 .DS_Store
 .env
+test-results/
+playwright-report/
