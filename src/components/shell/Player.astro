@@ -1,5 +1,6 @@
 ---
 import { SESSION_KEY } from './session-key';
+import { AUDIO_CORS } from '../../lib/background-music';
 
 interface Props {
   /** 全站背景音乐的地址 */
@@ -9,10 +10,14 @@ interface Props {
 const { siteMusic } = Astro.props;
 ---
 
-<div class="player" data-site-music={siteMusic} transition:persist="player" transition:animate="none">
+<div
+  class="player"
+  data-site-music={siteMusic}
+  data-audio-cors={AUDIO_CORS ? '' : undefined}
+  transition:persist="player" transition:animate="none">
   <!-- 换曲时一个 audio 淡出、另一个淡入；连着换时播放器会再加一个，免得还在淡出的那首被掐断 -->
-  <audio preload="auto"></audio>
-  <audio preload="auto"></audio>
+  <audio preload="auto" crossorigin={AUDIO_CORS ? 'anonymous' : undefined}></audio>
+  <audio preload="auto" crossorigin={AUDIO_CORS ? 'anonymous' : undefined}></audio>
   <p class="now-playing" aria-live="polite" hidden>
     <span class="now-playing-label">点播中：<span class="now-playing-title"></span></span>
     <button type="button" class="stop">停止</button>

@@ -1,14 +1,16 @@
 ---
 import Shell from '../components/shell/Shell.astro';
-import HomeHeroPrototype from '../components/home-hero-prototype/HomeHeroPrototype.astro';
+import HomeBackdrop from '../components/home-hero-prototype/HomeBackdrop.astro';
+import BookletStub from '../components/home-hero-prototype/BookletStub.astro';
 import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
 ---
 
-<!-- 占位首页：正式首页是 #19（D 专辑内页）。PROTOTYPE：主视觉的三个 WebGL 变体，?variant=A / B / C -->
+<!-- 占位首页：正式首页是 #19（D 专辑内页）。PROTOTYPE：全屏背景的三个数学变体，?variant=A / B / C -->
 <Shell title="cirnonine">
+  <HomeBackdrop />
   <main id="main">
-    <HomeHeroPrototype />
-    <h1>cirnonine</h1>
+    <h1 class="visually-hidden">cirnonine</h1>
+    <BookletStub />
   </main>
   {import.meta.env.DEV && <PrototypeSwitcher />}
 </Shell>
@@ -20,3 +22,14 @@ import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
     if (document.querySelector('[data-prototype-variants]')) showCurrentVariant();
   });
 </script>
+
+<style>
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+</style>

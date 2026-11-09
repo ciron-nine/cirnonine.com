@@ -4,6 +4,13 @@
  */
 import { placeholderMusic } from './placeholder-audio';
 
+/**
+ * R2 上的音频能不能跨域读取数据（首页背景跟着音乐呼吸要用，见 home-hero-prototype/pulse.ts）。
+ * 打开后播放器的 audio 会带 crossorigin="anonymous"：R2 没配 CORS 时这样的请求会失败，音乐就放不出来，
+ * 所以要先给 R2 配好 CORS，确认响应里有 Access-Control-Allow-Origin，再改成 true。
+ */
+export const AUDIO_CORS = false;
+
 /** 全站背景音乐：Malachi Bailey「Under the stars」 */
 export const SITE_MUSIC = 'https://media.cirnonine.com/background-music/under-the-stars.m4a';
 

@@ -130,6 +130,7 @@ export function mountPlayer(root: HTMLElement): void {
     if (idle) return idle;
     const audio = document.createElement('audio');
     audio.preload = 'auto';
+    if (root.dataset.audioCors !== undefined) audio.crossOrigin = 'anonymous';
     audio.muted = state.muted;
     root.prepend(audio);
     decks.push(audio);
