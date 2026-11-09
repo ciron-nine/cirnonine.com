@@ -1,0 +1,664 @@
+---
+/**
+ * PROTOTYPE（第三轮）：D 专辑内页做成半透明的硫酸纸小册子，浮在宇宙背景上。
+ * 结构照 prototype/home 分支的 VariantD.astro：方形，桌面上两页一摊，手机上一页一页往下翻。
+ * 第一摊：封面（头像）｜收录；第二摊：写在里面｜摘录；第三摊：最近完成｜版权页。
+ *
+ * 每一摊带 data-stop（1、2、3）：滚到它居中时，背景的镜头停在对应的星体旁边（cosmos-math.ts 的 CAMERA）。
+ * 动画（booklet.ts）：滚进视口时从折缝展开；「写在里面」一个字一个字像铅笔写出来；摘录慢慢浮现；头像往回翻时翻页。
+ * 减少动态效果时全部不动，小册子直接是展开好的。
+ */
+import type { HomeData } from './home-data';
+import AvatarPlaceholder from './AvatarPlaceholder.astro';
+import RandomQuote from './RandomQuote.astro';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+const [hello, ...notes] = data.intro;
+const catalog = `CN-${String(data.total).padStart(3, '0')}`;
+const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
+
+/** 把一段字拆成一个字一个 span，铅笔写字的动画按 --i 依次出现 */
+let written = 0;
+const chars = (text: string) =>
+  Array.from(text).map((ch) => ({ ch, i: written++ }));
+const helloChars = chars(hello);
+const noteChars = notes.map(chars);
+const signChars = chars('— c9');
+---
+
+<article class="booklet" data-booklet>
+  <div class="spread" data-stop="1">
+    <section class="page cover" aria-label="封面" data-avatar-history>
+      {
+        data.avatars.map((avatar, i) => (
+          <div class="slide" data-avatar-slide hidden={i > 0}>
+            {avatar.from.record ? (
+              <a href={avatar.from.record.href}>
+                <AvatarPlaceholder avatar={avatar} class="face" />
+              </a>
+            ) : (
+              <AvatarPlaceholder avatar={avatar} class="face" />
+            )}
+          </div>
+        ))
+      }
+      <p class="cover-mark" translate="no">cirnonine</p>
+      <p class="cover-catalog">{catalog}</p>
+      <p class="cover-steps">
+        <button type="button" data-avatar-step="1" aria-label="往回翻一个头像">←</button>
+        <button type="button" data-avatar-step="-1" aria-label="往后翻一个头像">→</button>
+      </p>
+    </section>
+
+    <section class="page tracklist" aria-label="收录">
+      <h2 class="label">收录</h2>
+      <ol>
+        {
+          data.categories.map((category, i) => (
+            <li>
+              <a class="track" href={category.href}>
+                <span class="no">{String(i + 1).padStart(2, '0')}</span>
+                <span class="name">{category.label}</span>
+                <span class="leader" aria-hidden="true" />
+                <span class="len">{category.records.length}</span>
+              </a>
+              <p class="titles">
+                {category.records.map((r, ri) => (
+                  <>
+                    {ri > 0 && ' / '}
+                    <a href={r.href} lang={r.lang}>
+                      {r.originalTitle}
+                    </a>
+                  </>
+                ))}
+              </p>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+  </div>
+
+  <div class="spread" data-stop="2">
+    <section class="page notes" aria-label="写在里面">
+      <h2 class="label">写在里面</h2>
+      <div class="notes-body voice">
+        {/* 读屏读整段的字；屏幕上是拆成一个个字的那份，用来做铅笔写字的动画 */}
+        <div class="visually-hidden">
+          <p>{hello}</p>
+          {notes.map((p) => <p>{p}</p>)}
+        </div>
+        <div class="write" aria-hidden="true">
+          <p class="hello">{helloChars.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</p>
+          {noteChars.map((line) => <p>{line.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</p>)}
+          <p class="sign">{signChars.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="page lyric" aria-label="摘录">
+      <h2 class="label">摘录</h2>
+      <div class="lyric-body">
+        <RandomQuote quotes={data.quotes} />
+      </div>
+    </section>
+  </div>
+
+  <div class="spread" data-stop="3">
+    <section class="page credits" aria-label="最近完成">
+      <h2 class="label">最近完成</h2>
+      <dl>
+        {
+          data.recent.map((record) => (
+            <div class="credit">
+              <dt>
+                <a href={record.href} lang={record.lang}>
+                  {record.originalTitle}
+                </a>
+              </dt>
+              <dd>
+                <span class="leader" aria-hidden="true" />
+                <span>{CATEGORY_LABEL[record.category]}</span>
+                <span class="voice">
+                  {record.datetime ? <time datetime={record.datetime}>{record.dateLabel}</time> : record.dateLabel}
+                </span>
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+    </section>
+
+    <section class="page colophon" aria-label="版权页">
+      <h2 class="label">版权页</h2>
+      <dl class="colophon-list">
+        <dt>编号</dt>
+        <dd>{catalog}（记录总数）</dd>
+        <dt>正文</dt>
+        <dd>思源黑体</dd>
+        <dt>我的声音</dt>
+        <dd>霞鹜文楷 · Klee One</dd>
+        <dt>原名</dt>
+        <dd>Shippori Mincho</dd>
+        <dt>纸</dt>
+        <dd>硫酸纸，背后是一张由记录生成的星图</dd>
+        <dt>说明</dt>
+        <dd class="voice">头像、文字、语录都是占位。</dd>
+      </dl>
+      <p class="barcode" aria-hidden="true">
+        {
+          data.categories.map((c) => (
+            <span class="bars">
+              {c.records.map((r) => (
+                <span class:list={{ fav: r.favorite }} />
+              ))}
+            </span>
+          ))
+        }
+      </p>
+    </section>
+  </div>
+</article>
+
+<script>
+  import './booklet';
+</script>
+
+<style>
+  .booklet {
+    /* 硫酸纸：纸色带一点透明，背后的宇宙隔着模糊透出来；--pulse 是音乐的强弱，纸跟着透一点光 */
+    --pulse: 0;
+    --tp-ink: light-dark(#141414, #ecebe6);
+    --tp-faint: light-dark(#4a4843, #a6a39b);
+    --tp-rule: light-dark(rgb(0 0 0 / 0.4), rgb(255 255 255 / 0.32));
+    /*
+     * 纸有多不透明，以及纸怎么改变背后透过来的光。文字要在任何背景上都够清楚（对比度 ≥ 4.5）：
+     * 浅色模式下背后是墨（暗的），纸把暗处提亮、压低反差；深色模式下背后是光（亮的），纸把亮处压暗。
+     * 这样纸可以薄一点，背后的星体看得出形状，字也不会被吃掉。
+     */
+    --tp-alpha: 58%;
+    --tp-filter: blur(10px) contrast(0.55) brightness(1.15) saturate(0.7);
+    --tp-grain: 0.35;
+    --tp-paper: light-dark(#efede6, #1c1c1a);
+    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+    display: grid;
+    gap: 80svh;
+    max-width: 66rem;
+    margin: 0 auto;
+    /* 第一屏留给远景 */
+    padding: 92svh 0 45svh;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .booklet {
+      --tp-alpha: 60%;
+      --tp-filter: blur(10px) brightness(0.45) saturate(0.7);
+      --tp-grain: 0.22;
+    }
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a:hover,
+  a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .spread {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    color: var(--tp-ink);
+    perspective: 2600px;
+    /*
+     * 离视口远的摊不渲染，里面的字也就不触发字体下载：首屏只下第一摊要的字体，后两摊滚近了再下。
+     * 首页的字来自每个类别、四种字体都用到，全部一起渲染的话几乎每个字体切片都要下（约 127 KB）。
+     */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 66rem auto 33rem;
+  }
+
+  .page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    aspect-ratio: 1;
+    padding: clamp(1.25rem, 3.5vw, 2.5rem);
+    overflow-wrap: anywhere;
+    background-color: color-mix(in srgb, var(--tp-paper) calc(var(--tp-alpha) - var(--pulse) * 8%), transparent);
+    backdrop-filter: var(--tp-filter);
+    -webkit-backdrop-filter: var(--tp-filter);
+    box-shadow:
+      inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.06)),
+      inset 0 0 calc(2rem + var(--pulse) * 3rem) light-dark(rgb(255 255 255 / 0.25), rgb(255 255 255 / calc(0.02 + var(--pulse) * 0.06))),
+      0 18px 48px -20px rgb(0 0 0 / 0.45);
+    transition: transform 1.2s cubic-bezier(0.2, 0.75, 0.15, 1), opacity 0.8s ease;
+  }
+
+  /* 纸的颗粒 */
+  .page::before {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: var(--tp-grain);
+    mix-blend-mode: overlay;
+  }
+
+  .page > * {
+    position: relative;
+  }
+
+  /* 折缝：左页右边、右页左边各一道淡淡的阴影 */
+  .page:first-child {
+    transform-origin: right center;
+    background-image: linear-gradient(to left, rgb(0 0 0 / 0.12), transparent 12%);
+  }
+
+  .page:last-child {
+    transform-origin: left center;
+    background-image: linear-gradient(to right, rgb(0 0 0 / 0.08), transparent 10%);
+  }
+
+  /* 还没滚到的一摊是合上的：两页朝折缝立起来（只在 JS 跑起来、没开减少动态效果时） */
+  .booklet[data-unfold] .spread:not(.open) .page:first-child {
+    opacity: 0;
+    transform: rotateY(84deg);
+  }
+
+  .booklet[data-unfold] .spread:not(.open) .page:last-child {
+    opacity: 0;
+    transform: rotateY(-84deg);
+  }
+
+  .label {
+    margin: 0 0 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    font-weight: 400;
+    letter-spacing: 0.25em;
+    color: var(--tp-faint);
+  }
+
+  /* 封面：头像占满整页，四角是站名、编号和翻页 */
+  .cover {
+    aspect-ratio: auto;
+    padding: 0;
+    overflow: hidden;
+    color: #f4f3ee;
+    perspective: 1600px;
+  }
+
+  .cover .slide {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    backface-visibility: hidden;
+  }
+
+  .cover .slide a {
+    display: block;
+    height: 100%;
+  }
+
+  .cover .slide[hidden] {
+    display: none;
+  }
+
+  /* 头像翻页：旧的一页绕左边（或右边）翻过去，露出下面新的一页 */
+  .cover .slide.turning {
+    z-index: 2;
+    animation: turn 0.9s cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
+    transform-origin: left center;
+  }
+
+  .cover .slide.turning.back {
+    transform-origin: right center;
+    animation-name: turn-back;
+  }
+
+  .cover .slide.turning::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: linear-gradient(to left, rgb(0 0 0 / 0.5), transparent);
+    animation: shade 0.9s ease forwards;
+  }
+
+  @keyframes turn {
+    to {
+      transform: rotateY(-178deg);
+    }
+  }
+
+  @keyframes turn-back {
+    to {
+      transform: rotateY(178deg);
+    }
+  }
+
+  @keyframes shade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .cover :global(.face) {
+    width: 100%;
+    height: 100%;
+    filter: contrast(1.2) grayscale(1);
+    opacity: 0.88;
+  }
+
+  .cover-mark,
+  .cover-catalog {
+    position: absolute;
+    top: clamp(1rem, 3vw, 1.75rem);
+    z-index: 3;
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+  }
+
+  .cover-mark {
+    left: clamp(1rem, 3vw, 1.75rem);
+  }
+
+  .cover-catalog {
+    right: clamp(1rem, 3vw, 1.75rem);
+  }
+
+  .cover-steps {
+    position: absolute;
+    right: clamp(1rem, 3vw, 1.75rem);
+    bottom: clamp(0.75rem, 2vw, 1.25rem);
+    z-index: 3;
+    display: flex;
+    gap: 0.5rem;
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 0.875rem;
+  }
+
+  .cover-steps button {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    background: none;
+    border: 0;
+    opacity: 0.8;
+  }
+
+  .cover-steps button:disabled {
+    cursor: default;
+    opacity: 0.25;
+  }
+
+  .tracklist ol {
+    display: grid;
+    gap: 1.25rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .track {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    font-size: clamp(1.125rem, 0.9rem + 1vw, 1.5rem);
+  }
+
+  .no,
+  .len {
+    font-family: var(--mono);
+    font-size: 0.6em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .leader {
+    flex: 1;
+    min-width: 1rem;
+    border-bottom: 1px dotted var(--tp-rule);
+    transform: translateY(-0.3em);
+  }
+
+  .titles {
+    margin: 0.35rem 0 0 calc(0.6em + 0.75rem + 1ch);
+    font-size: 0.6875rem;
+    line-height: 1.6;
+    color: var(--tp-faint);
+  }
+
+  .notes-body {
+    flex: 1;
+    font-size: 0.9375rem;
+    line-height: 1.9;
+    color: var(--tp-ink);
+  }
+
+  .write {
+    columns: 2 12rem;
+    column-gap: 1.75rem;
+  }
+
+  .write p {
+    margin: 0 0 0.9em;
+  }
+
+  .hello {
+    font-size: 1.5rem;
+    line-height: 1.3;
+    column-span: all;
+  }
+
+  .sign {
+    text-align: right;
+  }
+
+  /* 铅笔写字：每个字从左往右「画」出来，带一点灰到黑的变化 */
+  .booklet[data-unfold] .write .ch {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+
+  .booklet[data-unfold] .open .write .ch {
+    animation: pencil 0.32s ease-out calc(0.9s + var(--i) * 32ms) forwards;
+  }
+
+  @keyframes pencil {
+    0% {
+      opacity: 0.4;
+      clip-path: inset(0 100% 0 0);
+      filter: blur(0.6px);
+    }
+    70% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 1;
+      clip-path: inset(0 0 0 0);
+      filter: none;
+    }
+  }
+
+  .lyric-body {
+    display: grid;
+    flex: 1;
+    place-items: center;
+  }
+
+  .lyric-body :global([data-random-item]) {
+    width: 100%;
+  }
+
+  .lyric-body :global(figure) {
+    margin-inline: auto;
+  }
+
+  /* 摘录慢慢浮现 */
+  .booklet[data-unfold] .spread:not(.open) .lyric-body {
+    opacity: 0;
+  }
+
+  .booklet[data-unfold] .open .lyric-body {
+    animation: surface 3.2s ease 1s both;
+  }
+
+  @keyframes surface {
+    from {
+      opacity: 0;
+      filter: blur(8px);
+      transform: translateY(0.75rem);
+    }
+  }
+
+  .credits dl {
+    display: grid;
+    gap: 0.9rem;
+    margin: 0;
+  }
+
+  .credit {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .credit dt {
+    font-size: 1.125rem;
+    line-height: 1.3;
+  }
+
+  .credit dd {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--tp-faint);
+  }
+
+  .credit dd .voice {
+    color: var(--tp-faint);
+  }
+
+  .colophon-list {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.4rem 1rem;
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.6;
+  }
+
+  .colophon-list dt {
+    font-family: var(--mono);
+    color: var(--tp-faint);
+  }
+
+  .colophon-list dd {
+    margin: 0;
+  }
+
+  .colophon-list .voice {
+    color: var(--tp-ink);
+  }
+
+  .barcode {
+    display: flex;
+    gap: 6px;
+    height: 3rem;
+    margin: auto 0 0;
+  }
+
+  .bars {
+    display: flex;
+    gap: 2px;
+  }
+
+  .bars span {
+    width: 1px;
+    background: var(--tp-ink);
+  }
+
+  .bars .fav {
+    width: 3px;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 40rem) {
+    .booklet {
+      gap: 60svh;
+    }
+
+    .spread {
+      grid-template-columns: 1fr;
+    }
+
+    .page:first-child {
+      transform-origin: center bottom;
+      background-image: none;
+    }
+
+    .page:last-child {
+      transform-origin: center top;
+      background-image: none;
+    }
+
+    .page + .page {
+      border-top: 1px dashed var(--tp-rule);
+    }
+
+    /* 手机上两页上下叠着，从中间那道线往上、往下展开 */
+    .booklet[data-unfold] .spread:not(.open) .page:first-child {
+      transform: rotateX(-84deg);
+    }
+
+    .booklet[data-unfold] .spread:not(.open) .page:last-child {
+      transform: rotateX(84deg);
+    }
+
+    .cover {
+      aspect-ratio: 1;
+    }
+
+    .page:not(.cover) {
+      aspect-ratio: auto;
+    }
+
+    .lyric {
+      min-height: 50svh;
+    }
+
+    .write {
+      columns: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page {
+      transition: none;
+    }
+  }
+</style>

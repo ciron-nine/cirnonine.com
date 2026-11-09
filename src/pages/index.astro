@@ -1,27 +1,23 @@
 ---
 import Shell from '../components/shell/Shell.astro';
-import HomeBackdrop from '../components/home-hero-prototype/HomeBackdrop.astro';
-import BookletStub from '../components/home-hero-prototype/BookletStub.astro';
-import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
+import CosmosBackdrop from '../components/home-hero-prototype/CosmosBackdrop.astro';
+import Booklet from '../components/home-hero-prototype/Booklet.astro';
+import { loadHomeData } from '../components/home-hero-prototype/home-data';
+
+const data = await loadHomeData();
 ---
 
-<!-- 占位首页：正式首页是 #19（D 专辑内页）。PROTOTYPE：全屏背景的三个数学变体，?variant=A / B / C -->
+<!--
+  PROTOTYPE（第三轮，#19）：硫酸纸小册子浮在宇宙背景上，滚动就是在宇宙里往前推。
+  小册子是 D 专辑内页的原型移植，背景在 home-hero-prototype/gl-cosmos.ts。正式首页按选定方案在 #19 里重写。
+-->
 <Shell title="cirnonine">
-  <HomeBackdrop />
+  <CosmosBackdrop data={data} />
   <main id="main">
     <h1 class="visually-hidden">cirnonine</h1>
-    <BookletStub />
+    <Booklet data={data} />
   </main>
-  {import.meta.env.DEV && <PrototypeSwitcher />}
 </Shell>
-
-<script>
-  import { showCurrentVariant } from '../components/prototype/variants';
-
-  document.addEventListener('astro:page-load', () => {
-    if (document.querySelector('[data-prototype-variants]')) showCurrentVariant();
-  });
-</script>
 
 <style>
   .visually-hidden {

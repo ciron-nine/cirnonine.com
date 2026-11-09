@@ -1,0 +1,84 @@
+---
+/**
+ * PROTOTYPE（第三轮）：首页的宇宙背景，钉在视口上、在小册子后面，只在首页（ADR-0004）。
+ * 首屏先显示构建时画好的远景（横屏、竖屏各一张，浅色、深色各一张），WebGL 画好第一帧后淡入盖住它。
+ * 场景在 gl-cosmos.ts，控制器在 cosmos.ts。
+ *
+ * 参数：?gl=0 强制静态后备；?pulse=demo 用假的节拍看「跟着音乐呼吸」（R2 还没配 CORS，读不到真的背景音乐）；
+ * ?sample=1 让星系里的记录星用示意的心头好。
+ */
+import type { HomeData } from './home-data';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+/** 每条记录在星系里的位置：类别是哪条旋臂，越近完成的越靠旋臂外端（records 已经按新到旧排好） */
+const records = data.categories.flatMap((c, arm) =>
+  c.records.map((r, i) => ({
+    arm,
+    along: c.records.length > 1 ? 1 - i / (c.records.length - 1) : 0.5,
+    fav: r.favorite,
+    key: `${c.key}/${r.slug}`,
+  })),
+);
+const still = (orient: string, scheme: string) => `/home-hero-prototype/cosmos-${orient}-${scheme}.webp`;
+---
+
+<div class="cosmos" aria-hidden="true" data-cosmos data-records={JSON.stringify(records)}>
+  <picture class="still">
+    <source srcset={still('tall', 'dark')} media="(prefers-color-scheme: dark) and (orientation: portrait)" />
+    <source srcset={still('wide', 'dark')} media="(prefers-color-scheme: dark)" />
+    <source srcset={still('tall', 'light')} media="(orientation: portrait)" />
+    <img src={still('wide', 'light')} alt="" decoding="async" />
+  </picture>
+</div>
+
+<script>
+  import './cosmos';
+</script>
+
+<style>
+  .cosmos {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: -1;
+    height: 100lvh;
+    overflow: hidden;
+    color: var(--shell-fg);
+    background-color: var(--shell-bg);
+  }
+
+  .still img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 900ms ease;
+  }
+
+  .cosmos :global(canvas) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 900ms ease;
+  }
+
+  .cosmos[data-gl='on'] :global(canvas) {
+    opacity: 1;
+  }
+
+  .cosmos[data-gl='on'] .still img {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .still img,
+    .cosmos :global(canvas) {
+      transition: none;
+    }
+  }
+</style>

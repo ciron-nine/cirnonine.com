@@ -1,9 +1,8 @@
 /**
- * PROTOTYPE：三个背景变体共用的渲染循环。只在 backdrop.ts 判断要上 WebGL 之后才按需加载（连同 OGL）。
+ * PROTOTYPE：宇宙背景的渲染循环和小工具。只在 cosmos.ts 判断要上 WebGL 之后才按需加载（连同 OGL）。
  *
- * - 背景铺满视口、钉在内容后面。第一屏最浓；往下滚，动画放慢、颜色变淡，滚过一屏半以后降到四分之一帧率
  * - 切到别的标签页时停帧
- * - still：减少动态效果时只画一帧，之后只在尺寸或配色变化时重画
+ * - still：减少动态效果时只画一帧，之后只在尺寸或配色变化时重画（不跟着滚动动）
  * - 渲染分辨率按像素总数封顶，全屏背景在高分屏和手机上不至于太费 GPU
  * - 拿不到 WebGL 上下文时返回 null，页面保持静态后备
  */
@@ -14,25 +13,22 @@ export interface MountOptions {
   frame: HTMLElement;
   canvas: HTMLCanvasElement;
   still: boolean;
-  /** 跟着背景音乐的强弱，0..1；没有音乐数据时一直是 0 */
   pulse: Pulse;
-  /** 每条记录的亮度（心头好更亮），给想用记录做数据层的变体 */
-  records: number[];
+  /** 每条记录在星系里的位置和亮度 */
+  records: { arm: number; along: number; mag: number }[];
+  /** 现在滚到哪儿了：0 是第一屏远景，1、2、3 是三摊各自居中 */
+  progress(): number;
+  /** 每帧把音乐强弱交出去，小册子的纸用它一起呼吸 */
+  onPulse(level: number): void;
 }
 
 export interface Mounted {
   destroy(): void;
 }
 
-/** 每帧传给变体的状态 */
 export interface FrameState {
-  /** 动画时间（秒）：往下滚时走得慢 */
   time: number;
-  /** 这一帧走过的动画时间 */
   dt: number;
-  /** 浓度 1..0.3：第一屏是 1，往下滚变淡 */
-  strength: number;
-  /** 音乐强弱 0..1 */
   pulse: number;
 }
 
@@ -41,24 +37,14 @@ export function createRenderer(
   frame: HTMLElement,
   opts: { maxPixels: number; maxDpr?: number },
 ): Renderer | null {
+  const { width, height } = frame.getBoundingClientRect();
+  const dpr = Math.min(devicePixelRatio, opts.maxDpr ?? 2, Math.sqrt(opts.maxPixels / Math.max(width * height, 1)));
   try {
-    const renderer = new Renderer({
-      canvas,
-      dpr: renderDpr(frame, opts),
-      alpha: false,
-      antialias: false,
-      premultipliedAlpha: false,
-    });
+    const renderer = new Renderer({ canvas, dpr, alpha: false, antialias: false, premultipliedAlpha: false });
     return renderer.gl ? renderer : null;
   } catch {
     return null;
   }
-}
-
-function renderDpr(frame: HTMLElement, { maxPixels, maxDpr = 2 }: { maxPixels: number; maxDpr?: number }) {
-  const { width, height } = frame.getBoundingClientRect();
-  const area = Math.max(width * height, 1);
-  return Math.min(devicePixelRatio, maxDpr, Math.sqrt(maxPixels / area));
 }
 
 function parseColor(value: string): [number, number, number] {
@@ -72,22 +58,16 @@ export function readColors(el: HTMLElement): { ink: [number, number, number]; pa
   return { ink: parseColor(style.color), paper: parseColor(style.backgroundColor) };
 }
 
-/** 页面滚过了几屏 */
-function screensScrolled() {
-  return scrollY / Math.max(innerHeight, 1);
-}
-
 interface LoopOptions {
   frame: HTMLElement;
   renderer: Renderer;
   still: boolean;
   pulse: Pulse;
-  /** 减少动态效果时画的那一帧的时间（秒） */
   stillTime?: number;
   draw(state: FrameState): void;
   resize?(width: number, height: number): void;
-  /** 配色（浅 / 深）变了 */
   scheme?(): void;
+  onPulse?(level: number): void;
 }
 
 export function startLoop(o: LoopOptions): { destroy(): void; redraw(): void } {
@@ -95,37 +75,22 @@ export function startLoop(o: LoopOptions): { destroy(): void; redraw(): void } {
   let destroyed = false;
   let time = o.stillTime ?? 0;
   let last = performance.now();
-  let skipped = 0;
   let pulse = 0;
 
-  const strengthNow = () => {
-    // 第一屏是 1，滚到一屏多时降到 0.3
-    const s = Math.min(Math.max(screensScrolled() - 0.15, 0) / 1.1, 1);
-    return 1 - 0.7 * s * s * (3 - 2 * s);
-  };
-
   const redraw = () => {
-    if (!destroyed) o.draw({ time, dt: 0, strength: strengthNow(), pulse: 0 });
+    if (!destroyed) o.draw({ time, dt: 0, pulse });
   };
 
   const tick = (now: number) => {
     raf = 0;
-    const strength = strengthNow();
-    // 滚过一屏半：已经很淡，四帧画一帧
-    if (strength < 0.32 && ++skipped % 4 !== 0) {
-      schedule();
-      return;
-    }
-    // 停过帧之后不把停掉的时间算进去，动画从停下的地方接着走
-    const real = Math.min((now - last) / 1000, 0.1);
+    const dt = Math.min((now - last) / 1000, 0.1);
     last = now;
-    // 越往下滚动画越慢：浓度 1 时原速，0.3 时约四分之一
-    const dt = real * (0.25 + 0.75 * ((strength - 0.3) / 0.7));
     time += dt;
     // 音乐强弱做一点平滑：起得快、落得慢，像呼吸
     const target = o.pulse.level();
     pulse += (target - pulse) * (target > pulse ? 0.5 : 0.08);
-    o.draw({ time, dt, strength, pulse });
+    o.onPulse?.(pulse);
+    o.draw({ time, dt, pulse });
     schedule();
   };
 
@@ -155,11 +120,6 @@ export function startLoop(o: LoopOptions): { destroy(): void; redraw(): void } {
     redraw();
   };
   dark.addEventListener('change', onScheme);
-  // 减少动态效果时没有动画循环，滚动时要自己重画，浓度才会跟着变
-  const onScroll = () => {
-    if (o.still) redraw();
-  };
-  addEventListener('scroll', onScroll, { passive: true });
 
   resize();
   schedule();
@@ -172,17 +132,27 @@ export function startLoop(o: LoopOptions): { destroy(): void; redraw(): void } {
       ro.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       dark.removeEventListener('change', onScheme);
-      removeEventListener('scroll', onScroll);
+      o.onPulse?.(0);
       o.renderer.gl.getExtension('WEBGL_lose_context')?.loseContext();
     },
   };
 }
 
-/** 三个变体共用的 GLSL 片段：哈希、胶片颗粒 */
-export const GLSL_HASH = /* glsl */ `
+/** 着色器里共用的哈希和噪声 */
+export const GLSL_NOISE = /* glsl */ `
   float hash12(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
     p3 += dot(p3, p3.yzx + 33.33);
     return fract((p3.x + p3.y) * p3.z);
+  }
+  float noise(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash12(i), hash12(i + vec2(1, 0)), u.x), mix(hash12(i + vec2(0, 1)), hash12(i + vec2(1, 1)), u.x), u.y);
+  }
+  float fbm(vec2 p) {
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 4; i++) { v += a * noise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+    return v;
   }
 `;
