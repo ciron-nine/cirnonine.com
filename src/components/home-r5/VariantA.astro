@@ -1,7 +1,7 @@
 ---
 /**
  * PROTOTYPE（首页第五轮）A 函数三维 · 蓝晒图纸。
- * 整页是一张蓝晒（cyanotype）工程图：普鲁士蓝的纸，白色的线。右边钉着一只一直在流的 Dadras 吸引子（四翼），
+ * 整页是一张蓝晒（cyanotype）工程图：普鲁士蓝的纸，白色的线。右边是 Dequan Li 吸引子，十几万个粒子沿着它一直在流（a-flow.ts），
  * 右上角写着它的方程；左边是一栏手记，小册子的五样东西按顺序往下写：封面、写在里面、收录、摘录、最近完成。
  */
 import type { HomeData } from '../home-hero-prototype/home-data';
@@ -20,10 +20,10 @@ const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.l
   <div class="a-sheet" aria-hidden="true">
     <div class="a-plot"><canvas data-a-canvas></canvas></div>
     <div class="a-eq">
-      <p><i>ẋ</i> = <i>y</i> − <i>a</i><i>x</i> + <i>b</i><i>y</i><i>z</i></p>
-      <p><i>ẏ</i> = <i>c</i><i>y</i> − <i>x</i><i>z</i> + <i>z</i></p>
-      <p><i>ż</i> = <i>d</i><i>x</i><i>y</i> − <i>e</i><i>z</i></p>
-      <p class="a-param">a = 3　b = 2.7　c = 1.7　d = 2　e = 9　Dadras</p>
+      <p><i>ẋ</i> = <i>a</i>(<i>y</i> − <i>x</i>) + <i>d</i><i>x</i><i>z</i></p>
+      <p><i>ẏ</i> = <i>k</i><i>x</i> + <i>f</i><i>y</i> − <i>x</i><i>z</i></p>
+      <p><i>ż</i> = <i>c</i><i>z</i> + <i>x</i><i>y</i> − <i>e</i><i>x</i>²</p>
+      <p class="a-param">a = 40　c = 1.833　d = 0.16　e = 0.65　k = 55　f = 20　Dequan Li</p>
     </div>
   </div>
 

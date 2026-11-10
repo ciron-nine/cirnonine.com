@@ -46,8 +46,9 @@ function setUpAvatars(root: HTMLElement) {
 
 async function startA(root: HTMLElement) {
   const canvas = root.querySelector<HTMLCanvasElement>('[data-a-canvas]')!;
-  const { mountAttractor } = await import('./a-attractor');
-  return mountAttractor(canvas, { still: reduced.matches, scroll: scrollFraction }) ?? undefined;
+  // 粒子流要 WebGL2 和浮点纹理；没有的话页面上只有蓝晒纸
+  const { mountFlow } = await import('./a-flow');
+  return mountFlow(canvas, { still: reduced.matches, scroll: scrollFraction }) ?? undefined;
 }
 
 /**
@@ -66,7 +67,9 @@ function startB(root: HTMLElement) {
     offs.push(() => el.removeEventListener(type, fn as EventListener, opts));
   };
 
-  if (!still) root.dataset.motion = '';
+  // 动画的开关写在 .b 上（VariantB.astro 的样式是 .b[data-motion] …）
+  const chartRoot = root.querySelector<HTMLElement>('[data-b]')!;
+  if (!still) chartRoot.dataset.motion = '';
 
   // ---------- 缩放和拖动 ----------
   let view = { z: 1, cx: 500, cy: 500 };
@@ -247,7 +250,7 @@ function startB(root: HTMLElement) {
     clearTimeout(timer);
     cancelAnimationFrame(anim);
     clear();
-    delete root.dataset.motion;
+    delete chartRoot.dataset.motion;
     svg.setAttribute('viewBox', '0 0 1000 1000');
     svg.dataset.lod = '1';
     svg.style.setProperty('--z', '1');
