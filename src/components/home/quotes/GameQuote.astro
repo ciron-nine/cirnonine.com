@@ -11,11 +11,12 @@ const { quote } = Astro.props;
 <figure class="game-quote">
   {quote.speaker && <figcaption class="speaker">{quote.speaker}</figcaption>}
   <blockquote>
-    <p>{quote.original}</p>
-    {quote.translation && <p class="translation">{quote.translation}</p>}
+    <p lang={quote.lang}>{quote.original}</p>
+    {quote.translation && <p class="translation voice">{quote.translation}</p>}
   </blockquote>
   <p class="from">
     <a href={quote.record.href} lang={quote.record.lang}>{quote.record.originalTitle}</a>
+    {quote.source && <span> · {quote.source}</span>}
   </p>
 </figure>
 

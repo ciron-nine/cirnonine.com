@@ -6,8 +6,12 @@
  * - 准星：跟着鼠标读出坐标；指着星时读出它的名字
  * - 点亮：指一颗星，它的整个系列和星表里那一行一起亮；指星表里的一行，星图上那颗星亮
  * - 流星：隔 8–15 秒一颗
+ * - 键盘：星图只占一个 Tab 位置（一颗星 tabindex=0，其余 -1），方向键在星之间移动，Home / End 到头尾；
+ *   聚焦的星不在当前视野里时，平移过去
  * 减少动态效果时：不加 data-motion（没有印上去、闪、摆），没有流星，缩放直接跳过去。
  */
+import { CENTER, RADIUS, SIZE } from '../../lib/star-chart-frame';
+
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
 export function mountStarChart(root: HTMLElement): () => void {
@@ -25,17 +29,19 @@ export function mountStarChart(root: HTMLElement): () => void {
   if (!still) root.dataset.motion = '';
 
   // ---------- 缩放和拖动 ----------
-  let view = { z: 1, cx: 500, cy: 500 };
+  let view = { z: 1, cx: CENTER, cy: CENTER };
   let anim = 0;
   const clampView = (v: typeof view) => {
     const z = Math.min(Math.max(v.z, 1), 6);
-    const half = 500 / z;
-    return { z, cx: Math.min(Math.max(v.cx, half), 1000 - half), cy: Math.min(Math.max(v.cy, half), 1000 - half) };
+    const half = CENTER / z;
+    return { z, cx: Math.min(Math.max(v.cx, half), SIZE - half), cy: Math.min(Math.max(v.cy, half), SIZE - half) };
   };
   const apply = (v: typeof view) => {
-    const w = 1000 / v.z;
+    const w = SIZE / v.z;
     svg.setAttribute('viewBox', `${(v.cx - w / 2).toFixed(2)} ${(v.cy - w / 2).toFixed(2)} ${w.toFixed(2)} ${w.toFixed(2)}`);
     svg.style.setProperty('--zs', Math.sqrt(v.z).toFixed(3));
+    // 放大以后手指拖动是平移星图；没放大时让给页面滚动
+    svg.style.touchAction = v.z > 1.001 ? 'none' : '';
     const lod = v.z < 1.6 ? 1 : v.z < 3.2 ? 2 : 4;
     if (svg.dataset.lod !== String(lod)) {
       svg.dataset.lod = String(lod);
@@ -88,7 +94,7 @@ export function mountStarChart(root: HTMLElement): () => void {
   });
   on(svg, 'pointermove', (e: PointerEvent) => {
     if (!drag) return;
-    const scale = 1000 / view.z / svg.getBoundingClientRect().width;
+    const scale = SIZE / view.z / svg.getBoundingClientRect().width;
     view = clampView({ z: view.z, cx: drag.cx - (e.clientX - drag.x) * scale, cy: drag.cy - (e.clientY - drag.y) * scale });
     apply(view);
   });
@@ -102,7 +108,7 @@ export function mountStarChart(root: HTMLElement): () => void {
   for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-zoom]')) {
     on(button, 'click', () => {
       const kind = button.dataset.zoom;
-      if (kind === 'reset') go({ z: 1, cx: 500, cy: 500 });
+      if (kind === 'reset') go({ z: 1, cx: CENTER, cy: CENTER });
       else go({ ...view, z: view.z * (kind === 'in' ? 1.8 : 1 / 1.8) });
     });
   }
@@ -125,10 +131,10 @@ export function mountStarChart(root: HTMLElement): () => void {
   // ---------- 准星：读坐标；指着星时读出它的名字 ----------
   on(svg, 'pointermove', (e: PointerEvent) => {
     const pt = toChart(e.clientX, e.clientY);
-    const dx = pt.x - 500;
-    const dy = pt.y - 500;
+    const dx = pt.x - CENTER;
+    const dy = pt.y - CENTER;
     const r = Math.hypot(dx, dy);
-    if (r > 482 || e.pointerType === 'touch') {
+    if (r > RADIUS || e.pointerType === 'touch') {
       reticle.classList.remove('on');
       return;
     }
@@ -138,11 +144,11 @@ export function mountStarChart(root: HTMLElement): () => void {
     reticle.setAttribute('transform', `translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)}) scale(${s})`);
     const star = (e.target as Element).closest<SVGElement>('.star');
     if (star) {
-      coord.textContent = star.dataset.title ?? '';
+      coord.textContent = star.dataset.originalTitle ?? '';
       return;
     }
     const ra = (((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360) / 15;
-    const dec = 90 - (r / 482) * 120;
+    const dec = 90 - (r / RADIUS) * 120;
     const h = Math.floor(ra);
     const m = Math.floor((ra - h) * 60);
     coord.textContent = `${h}h${String(m).padStart(2, '0')}m  ${dec >= 0 ? '+' : '−'}${Math.abs(dec).toFixed(0)}°`;
@@ -182,13 +188,44 @@ export function mountStarChart(root: HTMLElement): () => void {
     on(row, 'pointerleave', clear);
   }
 
+  // ---------- 键盘：一个 Tab 位置，方向键在星之间移动 ----------
+  const starLinks = [...root.querySelectorAll<SVGAElement>('a.star')];
+  const rove = (index: number) => {
+    starLinks.forEach((a, i) => a.setAttribute('tabindex', i === index ? '0' : '-1'));
+  };
+  rove(0);
+  on(svg, 'keydown', (e: KeyboardEvent) => {
+    const at = starLinks.indexOf((e.target as Element).closest('a.star') as SVGAElement);
+    if (at < 0) return;
+    const n = starLinks.length;
+    const next =
+      e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (at + 1) % n
+      : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (at - 1 + n) % n
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? n - 1
+      : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    rove(next);
+    starLinks[next].focus();
+  });
+  // 聚焦的星在视野外（放大看着别处时）就平移过去
+  on(svg, 'focusin', (e: FocusEvent) => {
+    const dot = (e.target as Element).closest('a.star')?.querySelector<SVGCircleElement>('.dot');
+    if (!dot) return;
+    const x = dot.cx.baseVal.value;
+    const y = dot.cy.baseVal.value;
+    const half = CENTER / view.z;
+    if (Math.abs(x - view.cx) > half * 0.9 || Math.abs(y - view.cy) > half * 0.9) go({ z: view.z, cx: x, cy: y });
+  });
+
   // ---------- 流星：隔 8–15 秒一颗，从星图边上斜着划进来 ----------
   let timer = 0;
   const fly = () => {
     const a = Math.random() * Math.PI * 2;
     const r = 200 + Math.random() * 220;
-    const x0 = 500 + Math.cos(a) * r;
-    const y0 = 500 + Math.sin(a) * r;
+    const x0 = CENTER + Math.cos(a) * r;
+    const y0 = CENTER + Math.sin(a) * r;
     const dir = a + Math.PI * (0.75 + Math.random() * 0.5);
     meteor.setAttribute('d', `M${x0.toFixed(1)} ${y0.toFixed(1)} L${(x0 + Math.cos(dir) * 220).toFixed(1)} ${(y0 + Math.sin(dir) * 220).toFixed(1)}`);
     meteor.classList.remove('fly');
@@ -204,7 +241,9 @@ export function mountStarChart(root: HTMLElement): () => void {
     cancelAnimationFrame(anim);
     clear();
     delete root.dataset.motion;
-    svg.setAttribute('viewBox', '0 0 1000 1000');
+    svg.setAttribute('viewBox', `0 0 ${SIZE} ${SIZE}`);
+    svg.style.touchAction = '';
+    starLinks.forEach((a) => a.removeAttribute('tabindex'));
     svg.dataset.lod = '1';
     svg.style.setProperty('--z', '1');
   };

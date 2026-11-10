@@ -3,10 +3,11 @@
  * 首页右边的星表：星图附带的那一页，也就是小册子。
  * 封面（头像像一张天文底片，可以往回翻）、写在里面（序，我的声音）、收录（图例：四个类别和件数，
  * 点件数在星图上缩放到那个天区）、最近完成（跨类别最近 5 条）、摘录（随机一句语录，按所在类别的样子）、
- * 外部链接（填了地址的才出现）。
+ * 外部链接（src/content/elsewhere/，填了地址的才出现）。
  */
-import type { HomeData } from '../../lib/home-data';
-import { elsewhere } from '../../lib/elsewhere';
+import { recordKey, type HomeData } from '../../lib/home-data';
+import { getCollection } from 'astro:content';
+import { ELSEWHERE_ICONS } from '../../lib/elsewhere-icons';
 import type { StarChartData } from '../../lib/star-chart';
 import AvatarPlaceholder from './AvatarPlaceholder.astro';
 import RandomQuote from './RandomQuote.astro';
@@ -20,7 +21,12 @@ interface Props {
 const { data, regions } = Astro.props;
 const [hello, ...notes] = data.intro;
 const LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
-const links = elsewhere();
+/** 填了地址的外部链接，按 order 排 */
+const links = (await getCollection('elsewhere'))
+  .map((e) => e.data)
+  .filter((e) => e.url !== '')
+  .sort((a, b) => a.order - b.order)
+  .map((e) => ({ ...e, icon: ELSEWHERE_ICONS[e.platform] }));
 ---
 
 <aside class="star-table" aria-label="星表">
@@ -75,7 +81,7 @@ const links = elsewhere();
       <tbody>
         {
           data.recent.map((r) => (
-            <tr data-key={`${r.category}/${r.slug}`}>
+            <tr data-key={recordKey(r)}>
               <td class="kind">{LABEL[r.category]}</td>
               <td>
                 <a href={r.href} lang={r.lang}>

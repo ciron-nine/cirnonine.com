@@ -10,10 +10,10 @@
  * 这一级哪个方向都放不下的，就放在右边，允许和别的名字挨得近一点。
  */
 import { compareCompletionDates, type CompletionDate } from './completion-date';
-import type { CategoryKey, HomeData, HomeRecord } from './home-data';
+import { recordKey, type CategoryKey, type HomeData, type HomeRecord } from './home-data';
+import { CENTER as C, RADIUS as DISC } from './star-chart-frame';
 
-export const C = 500;
-export const DISC = 482;
+export { CENTER, RADIUS } from './star-chart-frame';
 export const LEVELS = [1, 2, 4] as const;
 export type Level = (typeof LEVELS)[number];
 /** 1× 时名字的字号（星图坐标里的单位）；放大后按比例变小，屏幕上看起来一样大 */
@@ -22,7 +22,7 @@ export const LABEL_SIZE = 11;
 export interface ChartRecord {
   key: string;
   category: CategoryKey;
-  title: string;
+  originalTitle: string;
   lang?: 'ja';
   href?: string;
   favorite: boolean;
@@ -54,7 +54,7 @@ function hash(s: string): number {
   return h / 4294967296;
 }
 
-/** 名字的宽度（以字号为单位），按思源黑体的大致字宽估：汉字、假名、全角 1，大写 0.68，小写和数字 0.57，空格 0.28，标点 0.36 */
+/** 原名标签的宽度（以字号为单位），按思源黑体的大致字宽估：汉字、假名、全角 1，大写 0.68，小写和数字 0.57，空格 0.28，标点 0.36 */
 function textWidth(text: string): number {
   let w = 0;
   for (const ch of text) {
@@ -69,9 +69,9 @@ function textWidth(text: string): number {
 
 function toChartRecord(r: HomeRecord): ChartRecord {
   return {
-    key: `${r.category}/${r.slug}`,
+    key: recordKey(r),
     category: r.category,
-    title: r.originalTitle,
+    originalTitle: r.originalTitle,
     lang: r.lang,
     href: r.href,
     favorite: r.favorite,
@@ -134,7 +134,7 @@ export function starChart(data: Pick<HomeData, 'categories'>) {
     });
     const placed: Box[] = [];
     for (const s of priority) {
-      const w = textWidth(s.rec.title) * fs;
+      const w = textWidth(s.rec.originalTitle) * fs;
       const h = fs * 1.2;
       // 每个名字四周留一点空，免得贴在一起
       const pad = fs * 0.3;

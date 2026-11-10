@@ -6,10 +6,10 @@
  *
  * 名字分三个缩放级别各算一份（text.level-1 / level-2 / level-4），星图只显示当前级别的那一份；
  * 放大以后放得下的名字才出来，字号跟着变小，屏幕上看起来一样大。
- * 动起来（JS 跑起来、没开减少动态效果时）：打开时星按完成先后一颗颗印上去，星座线随后连起来；暗星闪；
- * 偶尔一颗流星；星图缓慢摆动（放大以后停下）。
+ * 动起来（JS 跑起来、没开减少动态效果时）：打开时星按完成先后一颗颗印上去，星座线随后连起来；暗星闪；偶尔一颗流星。
+ * 键盘：星图只占一个 Tab 位置，方向键在星之间移动（star-chart.ts）。
  */
-import { C, DISC, LEVELS, type StarChartData } from '../../lib/star-chart';
+import { CENTER as C, LEVELS, RADIUS as DISC, type StarChartData } from '../../lib/star-chart';
 
 interface Props {
   chart: StarChartData;
@@ -23,7 +23,7 @@ const inkDelay = (order: number) => Math.round((order / Math.max(total, 1)) * IN
 ---
 
 <div class="star-chart" data-star-chart>
-  <svg viewBox="0 0 1000 1000" role="img" aria-label={`记录星图：${total} 条记录，每条是一颗星`} data-lod="1" style="--z: 1">
+  <svg viewBox="0 0 1000 1000" role="group" aria-label={`记录星图：${total} 条记录，每条是一颗星；方向键在星之间移动`} data-lod="1" style="--z: 1">
     <defs>
       <clipPath id="star-chart-disc"><circle cx={C} cy={C} r={DISC} /></clipPath>
     </defs>
@@ -77,9 +77,9 @@ const inkDelay = (order: number) => Math.round((order / Math.max(total, 1)) * IN
             <a
               href={s.rec.href}
               class:list={['star', { favorite: s.rec.favorite }]}
-              aria-label={s.rec.title}
+              aria-label={s.rec.originalTitle}
               data-key={s.rec.key}
-              data-title={s.rec.title}
+              data-original-title={s.rec.originalTitle}
               data-series={s.rec.series}
               style={`--delay: ${inkDelay(s.order)}ms`}
             >
@@ -90,7 +90,7 @@ const inkDelay = (order: number) => Math.round((order / Math.max(total, 1)) * IN
                 const l = s.labels[level];
                 return l ? (
                   <text x={l.x.toFixed(1)} y={l.y.toFixed(1)} text-anchor={l.anchor} class={`level-${level}`} lang={s.rec.lang} aria-hidden="true">
-                    {s.rec.title}
+                    {s.rec.originalTitle}
                   </text>
                 ) : null;
               })}
@@ -122,26 +122,23 @@ const inkDelay = (order: number) => Math.round((order / Math.max(total, 1)) * IN
     <button type="button" data-zoom="in" aria-label="放大">＋</button>
     <button type="button" data-zoom="out" aria-label="缩小">－</button>
     <button type="button" data-zoom="reset">全图</button>
+    <span class="hint">放大看名字</span>
   </div>
 </div>
 
 <style>
+  /* 没放大时手指在星图上滑是滚动页面；放大以后才由脚本接管拖动（它会把 touch-action 改成 none） */
   .star-chart {
     position: relative;
     display: grid;
     width: 100%;
     place-items: center;
-    touch-action: none;
   }
 
   svg {
     width: min(100%, calc(100svh - 5rem));
     height: auto;
     overflow: hidden;
-  }
-
-  .sky {
-    transform-origin: 500px 500px;
   }
 
   .grid circle,
@@ -331,23 +328,6 @@ const inkDelay = (order: number) => Math.round((order / Math.max(total, 1)) * IN
   }
 
   /* 动起来：data-motion 由 star-chart.ts 在没开减少动态效果时加上 */
-  .star-chart:global([data-motion]) .sky {
-    animation: sway 90s ease-in-out infinite alternate;
-  }
-
-  .star-chart:global([data-motion]) svg:not([data-lod='1']) .sky {
-    animation-play-state: paused;
-  }
-
-  @keyframes sway {
-    from {
-      transform: rotate(-4deg);
-    }
-    to {
-      transform: rotate(5deg);
-    }
-  }
-
   .star-chart:global([data-motion]) .star {
     transform-box: fill-box;
     transform-origin: center;
@@ -408,6 +388,14 @@ const inkDelay = (order: number) => Math.round((order / Math.max(total, 1)) * IN
     border-color: var(--ink);
   }
 
+  .hint {
+    display: none;
+    align-self: center;
+    margin-left: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--faint);
+  }
+
   @media (max-width: 47.99rem) {
     svg {
       width: 100%;
@@ -419,9 +407,13 @@ const inkDelay = (order: number) => Math.round((order / Math.max(total, 1)) * IN
       margin-top: 0.5rem;
     }
 
-    /* 手机上 1× 的字太小：只留心头好的名字，放大以后其他名字才出来 */
+    /* 手机上 1× 的字太小：只留心头好的名字，放大以后其他名字才出来，旁边提示一句 */
     svg[data-lod='1'] .star:not(.favorite) .level-1 {
       display: none;
+    }
+
+    svg[data-lod='1'] ~ .zoom .hint {
+      display: inline;
     }
   }
 

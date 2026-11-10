@@ -48,7 +48,7 @@ export interface Avatar {
   /** 头像上的角色 */
   name: string;
   /** 角色出自哪部作品；出自已有记录时带记录 */
-  from: { title: string; record?: HomeRecord };
+  from: { work: string; record?: HomeRecord };
 }
 
 export interface HomeData {
@@ -93,6 +93,9 @@ function toHomeRecord(entry: AnyRecord, categoryHref: string): HomeRecord {
   };
 }
 
+/** 一条记录在全站的键：「类别/slug」。星图上的星和星表里的行靠它对上 */
+export const recordKey = (r: { category: CategoryKey; slug: string }) => `${r.category}/${r.slug}`;
+
 const byDate = (a: HomeRecord, b: HomeRecord) =>
   compareCompletionDates(a.date, b.date) || a.originalTitle.localeCompare(b.originalTitle);
 
@@ -129,6 +132,6 @@ export async function loadHomeData(): Promise<HomeData> {
     categories,
     recent: [...all].sort(byDate).slice(0, 5),
     quotes,
-    avatars: AVATARS.map(({ name, from, record }) => ({ name, from: { title: from, record: record && find(...record) } })),
+    avatars: AVATARS.map(({ name, from, record }) => ({ name, from: { work: from, record: record && find(...record) } })),
   };
 }

@@ -9,7 +9,7 @@ const { quote } = Astro.props;
 ---
 
 <figure class="vn-quote">
-  {quote.speaker && <figcaption class="nameplate voice">{quote.speaker}</figcaption>}
+  {quote.speaker && <figcaption class="nameplate">{quote.speaker}</figcaption>}
   <blockquote>
     <p class="original" lang={quote.lang}>「{quote.original}」</p>
     {quote.translation && <p class="translation voice">{quote.translation}</p>}

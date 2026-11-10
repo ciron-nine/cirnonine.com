@@ -1,0 +1,4 @@
+# 站长的 bilibili 空间地址，填上以后首页星表底部出现图标
+platform: bilibili
+url: ''
+order: 2

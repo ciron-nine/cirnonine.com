@@ -11,7 +11,7 @@ beforeAll(() => {
 
 /** 星图上的星，按名字找 */
 const stars = () => home.querySelectorAll('[data-star-chart] .star');
-const star = (title: string) => stars().find((s) => s.getAttribute('data-title') === title)!;
+const star = (title: string) => stars().find((s) => s.getAttribute('data-original-title') === title)!;
 
 describe('首页', () => {
   it('构建成功，是正式版：没有原型的变体和切换条', () => {
@@ -31,7 +31,7 @@ describe('首页', () => {
     it('心头好是标出来的星', () => {
       const favorites = stars()
         .filter((s) => s.classList.contains('favorite'))
-        .map((s) => s.getAttribute('data-title'))
+        .map((s) => s.getAttribute('data-original-title'))
         .sort();
       expect(favorites).toEqual(['ATRI -My Dear Moments-', 'Hotline Miami', 'ぼっち・ざ・ろっく！', '千本桜'].sort());
     });
@@ -48,7 +48,7 @@ describe('首页', () => {
     it('放大到最大时每颗星都有名字，日文原名标成日文', () => {
       for (const s of stars()) {
         const label = s.querySelector('text.level-4');
-        expect(label?.text, s.getAttribute('data-title')!).toBe(s.getAttribute('data-title'));
+        expect(label?.text, s.getAttribute('data-original-title')!).toBe(s.getAttribute('data-original-title'));
       }
       expect(star('けいおん！').querySelector('text')!.getAttribute('lang')).toBe('ja');
       expect(star('九日').querySelector('text')!.getAttribute('lang')).toBeUndefined();
@@ -97,8 +97,15 @@ describe('首页', () => {
       expect(home.querySelector('[data-avatar-history] button[data-avatar-step]')).not.toBeNull();
     });
 
-    it('还没填地址的外部链接不出现', () => {
-      expect(home.querySelectorAll('.elsewhere a')).toEqual([]);
+    it('外部链接：填了地址的平台是一个图标链接，读屏读得出平台名，在新标签页打开；没填地址的不出现', () => {
+      const links = home.querySelectorAll('.elsewhere a').map((a) => ({
+        label: a.getAttribute('aria-label'),
+        href: a.getAttribute('href'),
+        target: a.getAttribute('target'),
+        icon: a.querySelector('svg') !== null,
+      }));
+      // 测试样例里 GitHub 填了地址，bilibili 没填
+      expect(links).toEqual([{ label: 'GitHub', href: 'https://github.com/example', target: '_blank', icon: true }]);
     });
   });
 });
@@ -108,6 +115,10 @@ describe('首页（站点的真实内容）', () => {
   beforeAll(() => {
     site = buildSiteContent();
   }, BUILD_TIMEOUT);
+
+  it('还没填地址的外部链接不出现', () => {
+    expect(site.page('').querySelectorAll('.elsewhere a')).toEqual([]);
+  });
 
   it('出自已有记录的头像链到那条记录', () => {
     const slides = site.page('').querySelectorAll('[data-avatar-history] [data-avatar-slide]');

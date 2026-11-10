@@ -9,6 +9,8 @@ interface Props {
 const { avatar, class: className } = Astro.props;
 const chars = Array.from(avatar.name);
 const glyph = chars.length <= 2 ? avatar.name : chars[0];
+// 名字里有假名才按日文排（琪露诺、初华是中文名）
+const lang = /[\u3040-\u30ff]/.test(avatar.name) ? 'ja' : undefined;
 // 每个头像一个不同的灰度，翻页时看得出换了一张
 const shade = 30 + ([...avatar.name].reduce((sum, c) => sum + c.codePointAt(0)!, 0) % 45);
 ---
@@ -19,7 +21,7 @@ const shade = 30 + ([...avatar.name].reduce((sum, c) => sum + c.codePointAt(0)!,
   aria-label={`头像（占位）：${avatar.name}`}
   style={`--avatar-shade: ${shade}%`}
 >
-  <span aria-hidden="true" lang="ja">{glyph}</span>
+  <span aria-hidden="true" lang={lang}>{glyph}</span>
 </span>
 
 <style>
