@@ -1,0 +1,533 @@
+---
+/**
+ * PROTOTYPE（首页第五轮）B 记录星图 · 印刷星图。
+ * 整页是一张印在白纸上的天图：蓝色的赤经赤纬网，黑色的星。四个类别各是一个天区（阶梯状的星座边界），
+ * 每条记录是一颗可以点的星：越近完成的越靠中心，心头好是红色的大星，同一系列连成星座。
+ * 星图缓慢摆动；鼠标处有一个望远镜准星，读出它所在的坐标。
+ * 右边一页是星表，也就是小册子：封面（底片）、写在里面（序）、收录（图例）、最近完成（星表）、摘录（脚注）。
+ */
+import type { HomeData } from '../home-hero-prototype/home-data';
+import AvatarPlaceholder from '../home-hero-prototype/AvatarPlaceholder.astro';
+import RandomQuote from '../home-hero-prototype/RandomQuote.astro';
+import { C, chart } from './b-chart-data';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+const [hello, ...notes] = data.intro;
+const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
+
+const { stars, lines, field, boundary } = chart(data);
+const hours = Array.from({ length: 24 }, (_, h) => h);
+---
+
+<div class="b" data-b>
+  <div class="b-chart-wrap">
+    <svg class="b-chart" viewBox="0 0 1000 1000" role="img" aria-label="记录星图：每条记录是一颗星" data-b-chart>
+      <defs>
+        <clipPath id="b-disc"><circle cx={C} cy={C} r="482" /></clipPath>
+      </defs>
+      <g class="b-sky" clip-path="url(#b-disc)">
+        <g class="b-grid">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <circle cx={C} cy={C} r={i * 60} />)}
+          {hours.map((h) => (
+            <line x1={C} y1={C} x2={C + Math.cos((h * 15 * Math.PI) / 180) * 482} y2={C + Math.sin((h * 15 * Math.PI) / 180) * 482} />
+          ))}
+        </g>
+        <g class="b-bounds">{[0, 90, 180, 270].map((d) => <path d={boundary(d)} />)}</g>
+        <g class="b-field">{field.map((f) => <circle cx={f.x.toFixed(1)} cy={f.y.toFixed(1)} r={f.s.toFixed(2)} />)}</g>
+        <g class="b-lines">
+          {lines.map(([a, b]) => <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />)}
+        </g>
+        <g class="b-regions" aria-hidden="true">
+          {
+            data.categories.map((cat, k) => {
+              const ang = ((k * 90 + 45) * Math.PI) / 180;
+              return (
+                <text x={C + Math.cos(ang) * 215} y={C + Math.sin(ang) * 215} text-anchor="middle">
+                  {cat.label}
+                </text>
+              );
+            })
+          }
+        </g>
+        <g class="b-stars">
+          {
+            stars.map((s) => (
+              <a href={s.r.href} class:list={['b-star', { fav: s.r.favorite }]} aria-label={s.r.originalTitle}>
+                <circle cx={s.x} cy={s.y} r={s.size + 6} class="b-hit" />
+                {s.r.favorite && <circle cx={s.x} cy={s.y} r={s.size + 3.5} class="b-ring" />}
+                <circle cx={s.x} cy={s.y} r={s.size} class="b-dot" />
+                <text x={s.label.x} y={s.label.y} text-anchor={s.label.anchor} lang={s.r.lang}>
+                  {s.r.originalTitle}
+                </text>
+              </a>
+            ))
+          }
+        </g>
+      </g>
+      <circle cx={C} cy={C} r="482" class="b-rim" />
+      <g class="b-hours" aria-hidden="true">
+        {
+          hours.map((h) => (
+            <text x={C + Math.cos((h * 15 * Math.PI) / 180) * 494} y={C + Math.sin((h * 15 * Math.PI) / 180) * 494 + 3} text-anchor="middle">
+              {h}h
+            </text>
+          ))
+        }
+      </g>
+      <g class="b-reticle" data-b-reticle aria-hidden="true">
+        <circle r="26" />
+        <line x1="-40" x2="-14" />
+        <line x1="14" x2="40" />
+        <line y1="-40" y2="-14" />
+        <line y1="14" y2="40" />
+        <text x="32" y="-30" data-b-coord></text>
+      </g>
+    </svg>
+  </div>
+
+  <aside class="b-sheet" aria-label="星表">
+    <section class="b-plate" aria-label="封面" data-avatar-history>
+      <div class="b-plate-img">
+        {
+          data.avatars.map((avatar, i) => (
+            <div class="b-slide" data-avatar-slide hidden={i > 0}>
+              {avatar.from.record ? (
+                <a href={avatar.from.record.href}>
+                  <AvatarPlaceholder avatar={avatar} />
+                </a>
+              ) : (
+                <AvatarPlaceholder avatar={avatar} />
+              )}
+            </div>
+          ))
+        }
+      </div>
+      <p class="b-steps">
+        <button type="button" data-avatar-step="1" aria-label="往回翻一个头像">←</button>
+        <button type="button" data-avatar-step="-1" aria-label="往后翻一个头像">→</button>
+      </p>
+    </section>
+
+    <section class="b-preface voice" aria-label="写在里面">
+      <p class="b-hello">{hello}</p>
+      {notes.map((p) => <p>{p}</p>)}
+    </section>
+
+    <section aria-labelledby="b-legend">
+      <h2 id="b-legend" class="b-h">收录</h2>
+      <ul class="b-legend">
+        {
+          data.categories.map((c) => (
+            <li>
+              <a href={c.href}>{c.label}</a>
+              <span class="b-n">{c.records.length}</span>
+            </li>
+          ))
+        }
+        <li class="b-key"><span class="b-key-dot fav" aria-hidden="true" />心头好</li>
+        <li class="b-key"><span class="b-key-line" aria-hidden="true" />同一系列</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="b-recent">
+      <h2 id="b-recent" class="b-h">最近完成</h2>
+      <table class="b-table">
+        <tbody>
+          {
+            data.recent.map((r) => (
+              <tr>
+                <td class="b-cat">{CATEGORY_LABEL[r.category]}</td>
+                <td>
+                  <a href={r.href} lang={r.lang}>
+                    {r.originalTitle}
+                  </a>
+                </td>
+                <td class="b-date voice">{r.datetime ? <time datetime={r.datetime}>{r.dateLabel}</time> : r.dateLabel}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section class="b-note" aria-labelledby="b-quote">
+      <h2 id="b-quote" class="b-h">摘录</h2>
+      <RandomQuote quotes={data.quotes} />
+    </section>
+  </aside>
+</div>
+
+<style>
+  .b {
+    --b-paper: #f3f5f8;
+    --b-ink: #0f1420;
+    --b-faint: #5d6678;
+    --b-grid: #2f64b0;
+    --b-red: #c8323e;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    gap: 2rem;
+    align-items: start;
+    min-height: 100svh;
+    color: var(--b-ink);
+  }
+
+  .b-chart-wrap {
+    position: sticky;
+    top: 0;
+    display: grid;
+    place-items: center;
+    height: calc(100svh - 4rem);
+  }
+
+  /* 白纸铺满整个视口，盖住外壳原来的底色 */
+  .b::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    content: '';
+    background: var(--b-paper);
+  }
+
+  .b-chart {
+    width: min(100%, calc(100svh - 5rem));
+    height: auto;
+    overflow: visible;
+  }
+
+  /* 星图缓慢摆动 */
+  .b-sky {
+    transform-origin: 500px 500px;
+    animation: b-sway 90s ease-in-out infinite alternate;
+  }
+
+  @keyframes b-sway {
+    from {
+      transform: rotate(-4deg);
+    }
+    to {
+      transform: rotate(5deg);
+    }
+  }
+
+  .b-grid circle,
+  .b-grid line {
+    fill: none;
+    stroke: var(--b-grid);
+    stroke-width: 0.6;
+    opacity: 0.32;
+  }
+
+  .b-bounds path {
+    fill: none;
+    stroke: var(--b-grid);
+    stroke-width: 1;
+    stroke-dasharray: 5 4;
+    opacity: 0.7;
+  }
+
+  .b-field circle {
+    fill: var(--b-ink);
+    opacity: 0.55;
+  }
+
+  .b-lines line {
+    stroke: var(--b-ink);
+    stroke-width: 0.9;
+    opacity: 0.55;
+  }
+
+  .b-regions text {
+    font-size: 30px;
+    letter-spacing: 0.6em;
+    fill: var(--b-grid);
+    opacity: 0.55;
+  }
+
+  .b-hit {
+    fill: transparent;
+  }
+
+  .b-dot {
+    fill: var(--b-ink);
+  }
+
+  .b-star.fav .b-dot {
+    fill: var(--b-red);
+  }
+
+  .b-ring {
+    fill: none;
+    stroke: var(--b-red);
+    stroke-width: 1;
+  }
+
+  .b-star text {
+    font-size: 10.5px;
+    fill: var(--b-ink);
+    opacity: 0.55;
+  }
+
+  .b-star:hover text,
+  .b-star:focus-visible text {
+    opacity: 1;
+    font-size: 13px;
+  }
+
+  .b-star:hover .b-dot,
+  .b-star:focus-visible .b-dot {
+    stroke: var(--b-paper);
+    stroke-width: 2;
+    paint-order: stroke;
+  }
+
+  .b-star:focus-visible {
+    outline: none;
+  }
+
+  .b-star:focus-visible .b-hit {
+    stroke: var(--b-red);
+    stroke-width: 1.5;
+  }
+
+  .b-rim {
+    fill: none;
+    stroke: var(--b-ink);
+    stroke-width: 1.4;
+  }
+
+  .b-hours text {
+    font-size: 10px;
+    fill: var(--b-grid);
+  }
+
+  .b-reticle {
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms;
+  }
+
+  .b-reticle.on {
+    opacity: 1;
+  }
+
+  .b-reticle circle,
+  .b-reticle line {
+    fill: none;
+    stroke: var(--b-red);
+    stroke-width: 1.1;
+  }
+
+  .b-reticle text {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    fill: var(--b-red);
+  }
+
+  /* 星表：右边一页白纸 */
+  .b-sheet {
+    display: grid;
+    gap: 2.75rem;
+    padding: 2rem 1.75rem 5rem;
+    margin-bottom: 3rem;
+    font-size: 0.9375rem;
+    background: #fff;
+    box-shadow:
+      0 1px 2px rgb(15 20 32 / 0.08),
+      0 18px 40px -18px rgb(15 20 32 / 0.3);
+  }
+
+  .b-sheet a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .b-sheet a:hover,
+  .b-sheet a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .b-h {
+    margin: 0 0 0.75rem;
+    padding-bottom: 0.4rem;
+    font-size: 0.9375rem;
+    border-bottom: 1px solid var(--b-ink);
+  }
+
+  .b-plate {
+    display: flex;
+    gap: 0.75rem;
+    align-items: end;
+  }
+
+  /* 头像像一张天文底片：黑底、反相的灰 */
+  .b-plate-img {
+    position: relative;
+    width: 8.5rem;
+    aspect-ratio: 1;
+    border: 6px solid var(--b-ink);
+  }
+
+  .b-slide {
+    position: absolute;
+    inset: 0;
+  }
+
+  .b-slide[hidden] {
+    display: none;
+  }
+
+  .b-slide a {
+    display: block;
+    height: 100%;
+  }
+
+  .b-plate :global(.avatar) {
+    width: 100%;
+    height: 100%;
+    filter: grayscale(1) contrast(1.2);
+  }
+
+  .b-steps {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0;
+  }
+
+  .b-steps button {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    font: inherit;
+    color: var(--b-ink);
+    cursor: pointer;
+    background: none;
+    border: 1px solid rgb(15 20 32 / 0.25);
+  }
+
+  .b-steps button:disabled {
+    opacity: 0.3;
+  }
+
+  .b-preface {
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+
+  .b-preface p {
+    margin: 0 0 0.8em;
+  }
+
+  .b-hello {
+    font-size: 1.5rem;
+    line-height: 1.35;
+  }
+
+  .b-legend {
+    display: grid;
+    gap: 0.45rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .b-legend li {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .b-legend li > a {
+    font-size: 1.125rem;
+  }
+
+  .b-n {
+    font-variant-numeric: tabular-nums;
+    color: var(--b-faint);
+  }
+
+  .b-key {
+    justify-content: flex-start !important;
+    gap: 0.6rem;
+    align-items: center;
+    font-size: 0.8125rem;
+    color: var(--b-faint);
+  }
+
+  .b-key-dot {
+    width: 9px;
+    height: 9px;
+    background: var(--b-red);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 3px var(--b-red);
+  }
+
+  .b-key-line {
+    width: 1.5rem;
+    border-top: 1px solid var(--b-ink);
+  }
+
+  .b-table {
+    width: 100%;
+    font-size: 0.875rem;
+    border-collapse: collapse;
+  }
+
+  .b-table td {
+    padding: 0.45rem 0.5rem 0.45rem 0;
+    vertical-align: baseline;
+    border-bottom: 1px solid rgb(15 20 32 / 0.12);
+  }
+
+  .b-cat,
+  .b-date {
+    color: var(--b-faint);
+    white-space: nowrap;
+  }
+
+  .b-date {
+    text-align: right;
+  }
+
+  @media (max-width: 47.99rem) {
+    .b {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .b-chart-wrap {
+      position: relative;
+      height: auto;
+      padding: 0.5rem 0 1rem;
+    }
+
+    .b-chart {
+      width: 100%;
+    }
+
+    /* 手机上字太小：只留心头好的名字，其他的点按（获得焦点）时才显示 */
+    .b-star text {
+      font-size: 22px;
+      opacity: 0;
+    }
+
+    .b-star.fav text,
+    .b-star:focus-visible text {
+      opacity: 1;
+    }
+
+    .b-sheet {
+      padding: 1.5rem 1.25rem 4rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .b-sky {
+      animation: none;
+    }
+  }
+</style>

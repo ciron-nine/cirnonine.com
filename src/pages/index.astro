@@ -1,28 +1,43 @@
 ---
+/**
+ * PROTOTYPE（首页第五轮，#19）：第一轮的三个方向重新设计，每版的背景和小册子一起做，视觉立场各不相同。
+ * 用 ?variant=A / B / C 切换；开发环境底部有切换条（← → 键也行），生产构建里也认 ?variant=，方便在预览部署上看。
+ * A 函数三维 · 蓝晒图纸 / B 记录星图 · 印刷星图 / C 极光与流星 · 极夜电影。
+ * 选定后按正式代码重写（#19），落选的变体只留在 prototype 分支上。
+ */
 import Shell from '../components/shell/Shell.astro';
-import CosmosBackdrop from '../components/home-hero-prototype/CosmosBackdrop.astro';
-import Booklet from '../components/home-hero-prototype/Booklet.astro';
+import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
 import { loadHomeData } from '../components/home-hero-prototype/home-data';
+import VariantA from '../components/home-r5/VariantA.astro';
+import VariantB from '../components/home-r5/VariantB.astro';
+import VariantC from '../components/home-r5/VariantC.astro';
 
 const data = await loadHomeData();
 ---
 
-<!--
-  PROTOTYPE（第四轮，#19）：星空下的一本专辑小册子。往下滚就是翻书，镜头跟着翻页从星空飞到行星、再到星系。
-  小册子在 home-hero-prototype/Booklet.astro，背景在 gl-cosmos.ts。正式首页按选定方案在 #19 里重写。
--->
 <Shell title="cirnonine">
-  <CosmosBackdrop data={data} />
-  <main id="main">
+  <main id="main" data-prototype-variants>
     <h1 class="visually-hidden">cirnonine</h1>
-    <Booklet data={data} />
+    <div data-variant="A" data-variant-name="函数三维 · 蓝晒图纸">
+      <VariantA data={data} />
+    </div>
+    <div data-variant="B" data-variant-name="记录星图 · 印刷星图" hidden>
+      <VariantB data={data} />
+    </div>
+    <div data-variant="C" data-variant-name="极光与流星 · 极夜电影" hidden>
+      <VariantC data={data} />
+    </div>
   </main>
+  {import.meta.env.DEV && <PrototypeSwitcher />}
 </Shell>
 
+<script>
+  import '../components/home-r5/r5';
+</script>
+
 <style is:global>
-  /* 首页固定是夜里：外壳的颜色都取深色那一套（只在首页，换页时这段样式跟着换掉） */
-  :root {
-    color-scheme: dark;
+  [data-prototype-variants] > [hidden] {
+    display: none !important;
   }
 </style>
 

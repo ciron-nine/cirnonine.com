@@ -1,0 +1,377 @@
+---
+/**
+ * PROTOTYPE（首页第五轮）A 函数三维 · 蓝晒图纸。
+ * 整页是一张蓝晒（cyanotype）工程图：普鲁士蓝的纸，白色的线。右边钉着一只一直在流的 Dadras 吸引子（四翼），
+ * 右上角写着它的方程；左边是一栏手记，小册子的五样东西按顺序往下写：封面、写在里面、收录、摘录、最近完成。
+ */
+import type { HomeData } from '../home-hero-prototype/home-data';
+import AvatarPlaceholder from '../home-hero-prototype/AvatarPlaceholder.astro';
+import RandomQuote from '../home-hero-prototype/RandomQuote.astro';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+const [hello, ...notes] = data.intro;
+const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
+---
+
+<div class="a" data-a>
+  <div class="a-sheet" aria-hidden="true">
+    <div class="a-plot"><canvas data-a-canvas></canvas></div>
+    <div class="a-eq">
+      <p><i>ẋ</i> = <i>y</i> − <i>a</i><i>x</i> + <i>b</i><i>y</i><i>z</i></p>
+      <p><i>ẏ</i> = <i>c</i><i>y</i> − <i>x</i><i>z</i> + <i>z</i></p>
+      <p><i>ż</i> = <i>d</i><i>x</i><i>y</i> − <i>e</i><i>z</i></p>
+      <p class="a-param">a = 3　b = 2.7　c = 1.7　d = 2　e = 9　Dadras</p>
+    </div>
+  </div>
+
+  <div class="a-notebook">
+    <section class="a-cover" aria-label="封面" data-avatar-history>
+      <div class="a-frame">
+        {
+          data.avatars.map((avatar, i) => (
+            <div class="a-slide" data-avatar-slide hidden={i > 0}>
+              {avatar.from.record ? (
+                <a href={avatar.from.record.href}>
+                  <AvatarPlaceholder avatar={avatar} class="a-face" />
+                </a>
+              ) : (
+                <AvatarPlaceholder avatar={avatar} class="a-face" />
+              )}
+            </div>
+          ))
+        }
+      </div>
+      <p class="a-steps">
+        <button type="button" data-avatar-step="1" aria-label="往回翻一个头像">←</button>
+        <button type="button" data-avatar-step="-1" aria-label="往后翻一个头像">→</button>
+      </p>
+    </section>
+
+    <section class="a-notes voice" aria-label="写在里面">
+      <p class="a-hello">{hello}</p>
+      {notes.map((p) => <p>{p}</p>)}
+      <p class="a-sign">— c9</p>
+    </section>
+
+    <section aria-labelledby="a-tracks">
+      <h2 id="a-tracks" class="a-h voice">收录</h2>
+      <ul class="a-tracks">
+        {
+          data.categories.map((c) => (
+            <li>
+              <a class="a-track" href={c.href}>
+                <span>{c.label}</span>
+                <span class="a-dots" aria-hidden="true" />
+                <span class="a-count">{c.records.length}</span>
+              </a>
+              <p class="a-titles">
+                {c.records.slice(0, 5).map((r, i) => (
+                  <>
+                    {i > 0 && '、'}
+                    <a href={r.href} lang={r.lang}>
+                      {r.originalTitle}
+                    </a>
+                  </>
+                ))}
+                {c.records.length > 5 && <span class="a-faint">……</span>}
+              </p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="a-quote">
+      <h2 id="a-quote" class="a-h voice">摘录</h2>
+      <RandomQuote quotes={data.quotes} />
+    </section>
+
+    <section aria-labelledby="a-recent">
+      <h2 id="a-recent" class="a-h voice">最近完成</h2>
+      <ol class="a-recent">
+        {
+          data.recent.map((r) => (
+            <li>
+              <a href={r.href} lang={r.lang}>
+                {r.originalTitle}
+              </a>
+              <span class="a-faint">{CATEGORY_LABEL[r.category]}</span>
+              <span class="a-faint voice">{r.datetime ? <time datetime={r.datetime}>{r.dateLabel}</time> : r.dateLabel}</span>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+  </div>
+</div>
+
+<style>
+  .a {
+    --a-paper: #0d2a4a;
+    --a-ink: #e3edf7;
+    --a-faint: #8fb0d2;
+    --a-rule: rgb(227 237 247 / 0.22);
+
+    color: var(--a-ink);
+  }
+
+  /* 蓝晒纸：普鲁士蓝，纸纹和很淡的方格 */
+  .a-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(rgb(227 237 247 / 0.05) 1px, transparent 1px) 0 0 / 2rem 2rem,
+      linear-gradient(90deg, rgb(227 237 247 / 0.05) 1px, transparent 1px) 0 0 / 2rem 2rem,
+      radial-gradient(120% 90% at 70% 40%, #164070, var(--a-paper) 60%, #081c33);
+  }
+
+  .a-sheet::after {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.9 0 0 0 0 0.95 0 0 0 0 1 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .a-plot {
+    position: absolute;
+    inset: 0 0 0 36%;
+  }
+
+  .a-plot canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 右上角的方程，像图纸上的标注 */
+  .a-eq {
+    position: absolute;
+    top: 5.5rem;
+    right: clamp(1rem, 4vw, 3rem);
+    font-family: 'Times New Roman', 'Songti SC', serif;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--a-faint);
+    text-align: right;
+  }
+
+  .a-eq p {
+    margin: 0;
+  }
+
+  .a-param {
+    margin-top: 0.5rem !important;
+    font-size: 0.8125rem;
+  }
+
+  /* 左边一栏手记：页边一道竖线 */
+  .a-notebook {
+    position: relative;
+    display: grid;
+    gap: clamp(3rem, 8vh, 5.5rem);
+    max-width: 27rem;
+    padding: 2rem 0 8rem clamp(1rem, 4vw, 3rem);
+    margin-left: clamp(0rem, 3vw, 2rem);
+    border-left: 1px solid var(--a-rule);
+  }
+
+  .a-notebook a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .a-notebook a:hover,
+  .a-notebook a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .a-h {
+    margin: 0 0 1rem;
+    font-size: 1.125rem;
+    color: var(--a-faint);
+  }
+
+  .a-faint {
+    color: var(--a-faint);
+  }
+
+  /* 封面：头像装在一个带十字对位标记的框里 */
+  .a-cover {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .a-frame {
+    position: relative;
+    width: 9.5rem;
+    aspect-ratio: 1;
+    outline: 1px solid var(--a-rule);
+    outline-offset: 6px;
+  }
+
+  .a-frame::before,
+  .a-frame::after {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    content: '';
+    border: 1px solid var(--a-ink);
+  }
+
+  .a-frame::before {
+    top: -10px;
+    left: -10px;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .a-frame::after {
+    right: -10px;
+    bottom: -10px;
+    border-top: 0;
+    border-left: 0;
+  }
+
+  .a-slide {
+    position: absolute;
+    inset: 0;
+  }
+
+  .a-slide[hidden] {
+    display: none;
+  }
+
+  .a-slide a {
+    display: block;
+    height: 100%;
+  }
+
+  .a-cover :global(.avatar) {
+    width: 100%;
+    height: 100%;
+    mix-blend-mode: screen;
+    filter: grayscale(1) contrast(1.1);
+    background: linear-gradient(160deg, #3d6fa3, #12345a) !important;
+  }
+
+  .a-steps {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0;
+  }
+
+  .a-steps button {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    font: inherit;
+    color: var(--a-ink);
+    cursor: pointer;
+    background: none;
+    border: 1px solid var(--a-rule);
+  }
+
+  .a-steps button:disabled {
+    opacity: 0.3;
+  }
+
+  .a-notes {
+    font-size: 1.0625rem;
+    line-height: 1.95;
+    color: var(--a-ink);
+  }
+
+  .a-notes p {
+    margin: 0 0 0.9em;
+  }
+
+  .a-hello {
+    font-size: 1.75rem;
+    line-height: 1.3;
+  }
+
+  .a-sign {
+    text-align: right;
+  }
+
+  .a-tracks,
+  .a-recent {
+    display: grid;
+    gap: 1.1rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .a-track {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    font-size: 1.375rem;
+  }
+
+  .a-dots {
+    flex: 1;
+    border-bottom: 1px dashed var(--a-rule);
+    transform: translateY(-0.3em);
+  }
+
+  .a-count {
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--a-faint);
+  }
+
+  .a-titles {
+    margin: 0.3rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--a-ink);
+  }
+
+  .a-recent li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 1rem;
+  }
+
+  .a-recent li > a {
+    grid-column: 1 / -1;
+    font-size: 1.0625rem;
+  }
+
+  .a-recent .a-faint {
+    font-size: 0.8125rem;
+  }
+
+  @media (max-width: 47.99rem) {
+    .a-plot {
+      inset: 0;
+    }
+
+    .a-eq {
+      top: 4.25rem;
+      right: 1rem;
+      font-size: 0.75rem;
+    }
+
+    .a-param {
+      display: none;
+    }
+
+    /* 手机上吸引子铺满整屏，手记的字下面垫一层纸 */
+    .a-notebook {
+      max-width: none;
+      margin: 45svh 0 0;
+      padding: 2rem 1rem 8rem;
+      background: rgb(13 42 74 / 0.82);
+      border-left: 0;
+      border-top: 1px solid var(--a-rule);
+    }
+  }
+</style>
