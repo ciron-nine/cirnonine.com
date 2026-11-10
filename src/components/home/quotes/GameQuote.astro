@@ -1,0 +1,89 @@
+---
+/** 首页摘录里游戏的语录，像游戏里的对话框：方框、说话人标签、右下角一个继续箭头 */
+import type { HomeQuote } from '../../../lib/home-data';
+
+interface Props {
+  quote: HomeQuote;
+}
+const { quote } = Astro.props;
+---
+
+<figure class="game-quote">
+  {quote.speaker && <figcaption class="speaker">{quote.speaker}</figcaption>}
+  <blockquote>
+    <p>{quote.original}</p>
+    {quote.translation && <p class="translation">{quote.translation}</p>}
+  </blockquote>
+  <p class="from">
+    <a href={quote.record.href} lang={quote.record.lang}>{quote.record.originalTitle}</a>
+  </p>
+</figure>
+
+<style>
+  .game-quote {
+    position: relative;
+    max-width: 34rem;
+    margin: 0;
+    padding: 1.5rem 1.25rem 1rem;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    color: #f2f2f2;
+    background: #141414;
+    border: 3px double #f2f2f2;
+  }
+
+  .speaker {
+    position: absolute;
+    top: -0.8rem;
+    left: 0.75rem;
+    padding: 0 0.5rem;
+    font-size: 0.8125rem;
+    background: #141414;
+    border: 1px solid #f2f2f2;
+  }
+
+  blockquote {
+    margin: 0;
+  }
+
+  blockquote p {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  blockquote p:first-child::after {
+    content: ' ▼';
+    font-size: 0.625rem;
+    vertical-align: middle;
+    animation: blink 1s steps(2) infinite;
+  }
+
+  .translation {
+    margin-top: 0.25rem;
+    color: #a8a8a8;
+  }
+
+  .from {
+    margin: 0.75rem 0 0;
+    font-size: 0.75rem;
+    color: #a8a8a8;
+    text-align: right;
+  }
+
+  .from a {
+    color: inherit;
+  }
+
+
+  @keyframes blink {
+    to {
+      visibility: hidden;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    blockquote p:first-child::after {
+      animation: none;
+    }
+  }
+</style>

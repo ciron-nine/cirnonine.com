@@ -1,6 +1,7 @@
-import { readdirSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { BUILD_TIMEOUT, buildSiteContent, fontFaces, type BuildResult } from './build';
+import { textByRole } from '../src/fonts/page-text';
 
 /** 每个类别的页面路由和它在 src/content/ 下的记录目录 */
 const CATEGORIES = [
@@ -43,19 +44,36 @@ describe('站点的真实内容', () => {
     });
   });
 
-  it('每一页要下载的字体都在几十 KB 以内', () => {
-    // 上限的算法偏保守：页面上任何一个字落在某个字体文件的 unicode-range 里，就算这个文件要下载
-    // （浏览器只为真正用那种字体显示的字下载，实际更少）
-    const BUDGET_KB = 120;
+  it('每一页要下载的字体在预算以内：首页 130 KB，其他页 120 KB', () => {
+    // 模拟浏览器选字：每段字按它所在的字体栈（Shell.astro、voice.css 里的 font-family）依次找，
+    // 第一个 unicode-range 里有这个字的字体就是它用的，那个字体文件就要下载。
+    // 首页的星图上有全站所有原名，几乎用到全站的字，所以单独放宽（ADR-0006）；它下过的文件别的页直接用缓存。
+    const BUDGET_KB = { home: 130, other: 120 };
+    const STACKS: Record<string, string[]> = {
+      body: ['cirnonine-body'],
+      voice: ['cirnonine-voice', 'cirnonine-voice-ja', 'cirnonine-body'],
+      'voice-ja': ['cirnonine-voice-ja', 'cirnonine-voice', 'cirnonine-body'],
+      ja: ['cirnonine-ja', 'cirnonine-body'],
+    };
     const faces = fontFaces(build).map((face) => ({ ...face, kb: statSync(`${build.outDir}${face.src}`).size / 1024 }));
+    const covers = (face: (typeof faces)[number], code: number) => face.ranges.some(([from, to]) => code >= from && code <= to);
     for (const route of build.routes('')) {
-      const page = build.page(route);
-      page.querySelectorAll('script, style').forEach((el) => el.remove());
-      const codes = new Set([...page.querySelector('body')!.text].map((char) => char.codePointAt(0)!));
-      const kb = faces
-        .filter((face) => face.ranges.some(([from, to]) => [...codes].some((code) => code >= from && code <= to)))
-        .reduce((sum, face) => sum + face.kb, 0);
-      expect(kb, route || '首页').toBeLessThan(BUDGET_KB);
+      const text = textByRole(readFileSync(`${build.outDir}/${route}index.html`, 'utf8'));
+      const used = new Set<(typeof faces)[number]>();
+      for (const [role, value] of Object.entries(text)) {
+        for (const char of new Set(value.replace(/\s/g, ''))) {
+          const code = char.codePointAt(0)!;
+          for (const family of STACKS[role]) {
+            const face = faces.find((f) => f.family === family && covers(f, code));
+            if (face) {
+              used.add(face);
+              break;
+            }
+          }
+        }
+      }
+      const kb = [...used].reduce((sum, face) => sum + face.kb, 0);
+      expect(kb, route || '首页').toBeLessThan(route === '' ? BUDGET_KB.home : BUDGET_KB.other);
     }
   });
 });

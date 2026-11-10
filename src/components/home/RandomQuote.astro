@@ -1,0 +1,35 @@
+---
+/**
+ * 首页的摘录：随机一句语录。所有候选都写进页面，浏览器里随机留一句（home.ts）；
+ * 没有 JS 时显示第一句。每句用它所在类别自己的样子呈现。
+ */
+import type { HomeQuote } from '../../lib/home-data';
+import GameQuote from './quotes/GameQuote.astro';
+import VisualNovelQuote from './quotes/VisualNovelQuote.astro';
+import AnimeQuote from './quotes/AnimeQuote.astro';
+import SongQuote from './quotes/SongQuote.astro';
+
+interface Props {
+  quotes: HomeQuote[];
+}
+const { quotes } = Astro.props;
+const BY_CATEGORY = {
+  games: GameQuote,
+  'visual-novels': VisualNovelQuote,
+  anime: AnimeQuote,
+  songs: SongQuote,
+};
+---
+
+<div class="random-quote" data-random-one>
+  {
+    quotes.map((quote, i) => {
+      const Quote = BY_CATEGORY[quote.category];
+      return (
+        <div data-random-item data-category={quote.category} hidden={i > 0}>
+          <Quote quote={quote} />
+        </div>
+      );
+    })
+  }
+</div>
