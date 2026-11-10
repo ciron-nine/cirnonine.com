@@ -1,12 +1,13 @@
 ---
 /**
- * PROTOTYPE（第三轮）：D 专辑内页做成半透明的硫酸纸小册子，浮在宇宙背景上。
- * 结构照 prototype/home 分支的 VariantD.astro：方形，桌面上两页一摊，手机上一页一页往下翻。
- * 第一摊：封面（头像）｜收录；第二摊：写在里面｜摘录；第三摊：最近完成｜版权页。
+ * PROTOTYPE（第四轮）：首页的专辑小册子，一本浮在星空里的实体小册子（D 专辑内页）。
  *
- * 每一摊带 data-stop（1、2、3）：滚到它居中时，背景的镜头停在对应的星体旁边（cosmos-math.ts 的 CAMERA）。
- * 动画（booklet.ts）：滚进视口时从折缝展开；「写在里面」一个字一个字像铅笔写出来；摘录慢慢浮现；头像往回翻时翻页。
- * 减少动态效果时全部不动，小册子直接是展开好的。
+ * 五页：封面（头像）、收录、写在里面、摘录、最近完成。版权页去掉了。
+ * 往下滚就是翻书（booklet.ts）：
+ * - 桌面：合着时只看得到封面；封面沿书脊翻开 → 收录｜写在里面；右页翻过去 → 摘录｜最近完成
+ * - 手机：像顶端装订的册子，一页一页往上翻
+ * 滚动进度同时交给星空（book-progress.ts）：合着是星空，翻开第一页停在行星旁边，翻到第二页落在星系上。
+ * 没有 JS 或开了减少动态效果时，小册子直接是摊开的样子，五页按顺序排好。
  */
 import type { HomeData } from './home-data';
 import AvatarPlaceholder from './AvatarPlaceholder.astro';
@@ -17,151 +18,121 @@ interface Props {
 }
 const { data } = Astro.props;
 const [hello, ...notes] = data.intro;
-const catalog = `CN-${String(data.total).padStart(3, '0')}`;
 const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
+/** 收录页每个类别只列最近的几部，其余写成件数 */
+const TITLES_PER_CATEGORY = 4;
 
 /** 把一段字拆成一个字一个 span，铅笔写字的动画按 --i 依次出现 */
 let written = 0;
-const chars = (text: string) =>
-  Array.from(text).map((ch) => ({ ch, i: written++ }));
+const chars = (text: string) => Array.from(text).map((ch) => ({ ch, i: written++ }));
 const helloChars = chars(hello);
 const noteChars = notes.map(chars);
 const signChars = chars('— c9');
 ---
 
-<article class="booklet" data-booklet>
-  <div class="spread" data-stop="1">
-    <section class="page cover" aria-label="封面" data-avatar-history>
-      {
-        data.avatars.map((avatar, i) => (
-          <div class="slide" data-avatar-slide hidden={i > 0}>
-            {avatar.from.record ? (
-              <a href={avatar.from.record.href}>
-                <AvatarPlaceholder avatar={avatar} class="face" />
-              </a>
-            ) : (
-              <AvatarPlaceholder avatar={avatar} class="face" />
-            )}
-          </div>
-        ))
-      }
-      <p class="cover-mark" translate="no">cirnonine</p>
-      <p class="cover-catalog">{catalog}</p>
-      <p class="cover-steps">
-        <button type="button" data-avatar-step="1" aria-label="往回翻一个头像">←</button>
-        <button type="button" data-avatar-step="-1" aria-label="往后翻一个头像">→</button>
-      </p>
-    </section>
+<section class="booklet" data-booklet aria-label="小册子">
+  <div class="stage" data-stage>
+    <div class="book" data-book>
+      <div class="pages" data-pages>
+        <section class="page cover" data-page aria-label="封面" data-avatar-history>
+          {
+            data.avatars.map((avatar, i) => (
+              <div class="slide" data-avatar-slide hidden={i > 0}>
+                {avatar.from.record ? (
+                  <a href={avatar.from.record.href}>
+                    <AvatarPlaceholder avatar={avatar} class="face" />
+                  </a>
+                ) : (
+                  <AvatarPlaceholder avatar={avatar} class="face" />
+                )}
+              </div>
+            ))
+          }
+          <p class="cover-mark" translate="no">cirnonine</p>
+          <p class="cover-steps">
+            <button type="button" data-avatar-step="1" aria-label="往回翻一个头像">←</button>
+            <button type="button" data-avatar-step="-1" aria-label="往后翻一个头像">→</button>
+          </p>
+        </section>
 
-    <section class="page tracklist" aria-label="收录">
-      <h2 class="label">收录</h2>
-      <ol>
-        {
-          data.categories.map((category, i) => (
-            <li>
-              <a class="track" href={category.href}>
-                <span class="no">{String(i + 1).padStart(2, '0')}</span>
-                <span class="name">{category.label}</span>
-                <span class="leader" aria-hidden="true" />
-                <span class="len">{category.records.length}</span>
-              </a>
-              <p class="titles">
-                {category.records.map((r, ri) => (
-                  <>
-                    {ri > 0 && ' / '}
-                    <a href={r.href} lang={r.lang}>
-                      {r.originalTitle}
+        <section class="page tracklist" data-page>
+          <h2 class="folio"><span class="no">1</span>收录</h2>
+          <ol class="tracks">
+            {
+              data.categories.map((category) => {
+                const shown = category.records.slice(0, TITLES_PER_CATEGORY);
+                const rest = category.records.length - shown.length;
+                return (
+                  <li>
+                    <a class="track" href={category.href}>
+                      <span class="name">{category.label}</span>
+                      <span class="leader" aria-hidden="true" />
+                      <span class="len">{category.records.length}</span>
                     </a>
-                  </>
-                ))}
-              </p>
-            </li>
-          ))
-        }
-      </ol>
-    </section>
-  </div>
+                    <p class="titles">
+                      {shown.map((r, ri) => (
+                        <>
+                          {ri > 0 && <span class="sep"> / </span>}
+                          <a href={r.href} lang={r.lang}>
+                            {r.originalTitle}
+                          </a>
+                        </>
+                      ))}
+                      {rest > 0 && <span class="more">，另有 {rest} 部</span>}
+                    </p>
+                  </li>
+                );
+              })
+            }
+          </ol>
+        </section>
 
-  <div class="spread" data-stop="2">
-    <section class="page notes" aria-label="写在里面">
-      <h2 class="label">写在里面</h2>
-      <div class="notes-body voice">
-        {/* 读屏读整段的字；屏幕上是拆成一个个字的那份，用来做铅笔写字的动画 */}
-        <div class="visually-hidden">
-          <p>{hello}</p>
-          {notes.map((p) => <p>{p}</p>)}
-        </div>
-        <div class="write" aria-hidden="true">
-          <p class="hello">{helloChars.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</p>
-          {noteChars.map((line) => <p>{line.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</p>)}
-          <p class="sign">{signChars.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="page lyric" aria-label="摘录">
-      <h2 class="label">摘录</h2>
-      <div class="lyric-body">
-        <RandomQuote quotes={data.quotes} />
-      </div>
-    </section>
-  </div>
-
-  <div class="spread" data-stop="3">
-    <section class="page credits" aria-label="最近完成">
-      <h2 class="label">最近完成</h2>
-      <dl>
-        {
-          data.recent.map((record) => (
-            <div class="credit">
-              <dt>
-                <a href={record.href} lang={record.lang}>
-                  {record.originalTitle}
-                </a>
-              </dt>
-              <dd>
-                <span class="leader" aria-hidden="true" />
-                <span>{CATEGORY_LABEL[record.category]}</span>
-                <span class="voice">
-                  {record.datetime ? <time datetime={record.datetime}>{record.dateLabel}</time> : record.dateLabel}
-                </span>
-              </dd>
+        <section class="page notes" data-page>
+          <h2 class="folio"><span class="no">2</span>写在里面</h2>
+          <div class="notes-body voice">
+            {/* 读屏读整段的字；屏幕上是拆成一个个字的那份，用来做铅笔写字的动画 */}
+            <div class="visually-hidden">
+              <p>{hello}</p>
+              {notes.map((p) => <p>{p}</p>)}
             </div>
-          ))
-        }
-      </dl>
-    </section>
+            <div class="write" aria-hidden="true">
+              <p class="hello">{helloChars.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</p>
+              {noteChars.map((line) => <p>{line.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</p>)}
+              <p class="sign">{signChars.map(({ ch, i }) => <span class="ch" style={`--i:${i}`}>{ch}</span>)}</p>
+            </div>
+          </div>
+        </section>
 
-    <section class="page colophon" aria-label="版权页">
-      <h2 class="label">版权页</h2>
-      <dl class="colophon-list">
-        <dt>编号</dt>
-        <dd>{catalog}（记录总数）</dd>
-        <dt>正文</dt>
-        <dd>思源黑体</dd>
-        <dt>我的声音</dt>
-        <dd>霞鹜文楷 · Klee One</dd>
-        <dt>原名</dt>
-        <dd>Shippori Mincho</dd>
-        <dt>纸</dt>
-        <dd>硫酸纸，背后是一张由记录生成的星图</dd>
-        <dt>说明</dt>
-        <dd class="voice">头像、文字、语录都是占位。</dd>
-      </dl>
-      <p class="barcode" aria-hidden="true">
-        {
-          data.categories.map((c) => (
-            <span class="bars">
-              {c.records.map((r) => (
-                <span class:list={{ fav: r.favorite }} />
-              ))}
-            </span>
-          ))
-        }
-      </p>
-    </section>
+        <section class="page lyric" data-page>
+          <h2 class="folio"><span class="no">3</span>摘录</h2>
+          <div class="lyric-body">
+            <RandomQuote quotes={data.quotes} />
+          </div>
+        </section>
+
+        <section class="page credits" data-page>
+          <h2 class="folio"><span class="no">4</span>最近完成</h2>
+          <ol class="recent">
+            {
+              data.recent.map((record) => (
+                <li>
+                  <a class="recent-title" href={record.href} lang={record.lang}>
+                    {record.originalTitle}
+                  </a>
+                  <span class="recent-kind">{CATEGORY_LABEL[record.category]}</span>
+                  <span class="recent-date voice">
+                    {record.datetime ? <time datetime={record.datetime}>{record.dateLabel}</time> : record.dateLabel}
+                  </span>
+                </li>
+              ))
+            }
+          </ol>
+        </section>
+      </div>
+    </div>
   </div>
-</article>
+  <p class="hint" aria-hidden="true">往下滚动，翻开</p>
+</section>
 
 <script>
   import './booklet';
@@ -169,36 +140,201 @@ const signChars = chars('— c9');
 
 <style>
   .booklet {
-    /* 硫酸纸：纸色带一点透明，背后的宇宙隔着模糊透出来；--pulse 是音乐的强弱，纸跟着透一点光 */
+    /* 星光下的冷白纸，墨是带一点蓝的黑；--pulse 是音乐的强弱，纸面的光跟着呼吸 */
     --pulse: 0;
-    --tp-ink: light-dark(#141414, #ecebe6);
-    --tp-faint: light-dark(#4a4843, #a6a39b);
-    --tp-rule: light-dark(rgb(0 0 0 / 0.4), rgb(255 255 255 / 0.32));
-    /*
-     * 纸有多不透明，以及纸怎么改变背后透过来的光。文字要在任何背景上都够清楚（对比度 ≥ 4.5）：
-     * 浅色模式下背后是墨（暗的），纸把暗处提亮、压低反差；深色模式下背后是光（亮的），纸把亮处压暗。
-     * 这样纸可以薄一点，背后的星体看得出形状，字也不会被吃掉。
-     */
-    --tp-alpha: 58%;
-    --tp-filter: blur(10px) contrast(0.55) brightness(1.15) saturate(0.7);
-    --tp-grain: 0.35;
-    --tp-paper: light-dark(#efede6, #1c1c1a);
-    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+    --paper: #e9ecf4;
+    --ink: #161a26;
+    --faint: #59617a;
+    --rule: rgb(22 26 38 / 0.2);
+    --page: min(40vw, 70svh, 34rem);
 
-    display: grid;
-    gap: 80svh;
-    max-width: 66rem;
-    margin: 0 auto;
-    /* 第一屏留给远景 */
-    padding: 92svh 0 45svh;
+    position: relative;
+    color: var(--ink);
   }
 
-  @media (prefers-color-scheme: dark) {
-    .booklet {
-      --tp-alpha: 60%;
-      --tp-filter: blur(10px) brightness(0.45) saturate(0.7);
-      --tp-grain: 0.22;
-    }
+  /* ---------- 没有 JS、减少动态效果：五页摊开，按顺序排好 ---------- */
+
+  .pages {
+    display: grid;
+    grid-template-columns: repeat(2, var(--page));
+    justify-content: center;
+    padding-block: 2rem 4rem;
+  }
+
+  .booklet:not([data-flip]) .cover {
+    grid-column: 2;
+  }
+
+  .booklet:not([data-flip]) .hint {
+    display: none;
+  }
+
+  /* ---------- 翻书：舞台钉在视口上，书在舞台中间翻页 ---------- */
+
+  .booklet[data-flip] .stage {
+    position: sticky;
+    top: 0;
+    display: grid;
+    place-items: center;
+    height: 100svh;
+    perspective: 2400px;
+  }
+
+  .book {
+    --shift: 0px;
+    --tilt: 0deg;
+    --turn: 0deg;
+    --scale: 1;
+
+    position: relative;
+  }
+
+  .booklet[data-flip] .book {
+    width: calc(var(--page) * 2);
+    height: var(--page);
+    transform: translateX(var(--shift)) rotateX(var(--tilt)) rotateZ(var(--turn)) scale(var(--scale));
+    transform-style: preserve-3d;
+  }
+
+  /* 书下面一块很淡的影子，让它浮在星空里 */
+  .booklet[data-flip] .book::after {
+    position: absolute;
+    inset: 12% 6% -6% 54%;
+    z-index: -1;
+    pointer-events: none;
+    content: '';
+    background: rgb(0 0 0 / 0.55);
+    filter: blur(28px);
+    transform: translateZ(-40px);
+  }
+
+  .booklet[data-flip][data-open] .book::after {
+    inset-inline-start: 6%;
+  }
+
+  :global(.leaf),
+  :global(.leaf-base) {
+    position: absolute;
+    inset: 0 0 0 50%;
+  }
+
+  :global(.leaf) {
+    --t: 0;
+    --shade: 0;
+
+    /* --z 是这张纸在一摞里的前后，免得和别的纸叠在同一个平面上闪 */
+    transform: translateZ(var(--z, 0px)) rotateY(calc(var(--t) * -180deg));
+    transform-origin: left center;
+    transform-style: preserve-3d;
+  }
+
+  :global(.leaf-face) {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+  }
+
+  :global(.leaf-face.back) {
+    transform: rotateY(180deg);
+  }
+
+  /* 翻到一半时纸面变暗，像转过去背光 */
+  :global(.leaf-face)::after {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+    background: linear-gradient(to left, rgb(8 10 20 / 0.55), rgb(8 10 20 / 0.15));
+    opacity: calc(var(--shade) * 0.9);
+  }
+
+  :global(.leaf-face.back)::after {
+    background: linear-gradient(to right, rgb(8 10 20 / 0.55), rgb(8 10 20 / 0.15));
+  }
+
+  :global(.leaf-face) > .page,
+  :global(.leaf-base) > .page {
+    height: 100%;
+  }
+
+  /* 空白的纸背 */
+  :global(.leaf-face.blank) {
+    background: var(--paper);
+  }
+
+  /* 右边一摞还没翻的纸的书口 */
+  :global(.leaf-base)::before {
+    position: absolute;
+    inset: 1.5% -5px 1.5% auto;
+    width: 5px;
+    content: '';
+    background: repeating-linear-gradient(to right, #c9cedb 0 1px, #eef0f6 1px 2px);
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* 手机：顶端装订，一页一页往上翻；翻过去的纸往上淡出 */
+  .booklet[data-flip][data-mode='single'] .book {
+    width: var(--page);
+  }
+
+  .booklet[data-mode='single'] :global(.leaf),
+  .booklet[data-mode='single'] :global(.leaf-base) {
+    inset: 0;
+  }
+
+  .booklet[data-mode='single'] :global(.leaf) {
+    opacity: clamp(0, (1 - var(--t)) * 2.5, 1);
+    transform: translateZ(var(--z, 0px)) rotateX(calc(var(--t) * 180deg));
+    transform-origin: center top;
+  }
+
+  .booklet[data-mode='single'] :global(.leaf-face.back) {
+    transform: rotateX(180deg);
+  }
+
+  .booklet[data-mode='single'] :global(.leaf-face)::after {
+    background: linear-gradient(to top, rgb(8 10 20 / 0.55), rgb(8 10 20 / 0.1));
+  }
+
+  .booklet[data-mode='single'] .book::after {
+    inset-inline-start: 6%;
+  }
+
+  /* 合着的时候在视口底部提示一句；舞台有 perspective，提示放在舞台外面才能钉在视口上 */
+  .hint {
+    position: fixed;
+    bottom: max(1.5rem, env(safe-area-inset-bottom));
+    left: 50%;
+    margin: 0;
+    font-size: 0.8125rem;
+    letter-spacing: 0.08em;
+    color: rgb(214 220 238 / 0.7);
+    transform: translateX(-50%);
+    transition: opacity 300ms;
+  }
+
+  .booklet[data-open] .hint {
+    opacity: 0;
+  }
+
+  /* ---------- 纸 ---------- */
+
+  .page {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    aspect-ratio: 1;
+    padding: calc(var(--page) * 0.075) calc(var(--page) * 0.08) calc(var(--page) * 0.06);
+    overflow: hidden;
+    font-size: clamp(0.8125rem, calc(var(--page) * 0.028), 1rem);
+    background-color: var(--paper);
+    /* 纸纹：一层很淡的颗粒，加上星光在纸面上的一点青和玫红 */
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.09 0 0 0 0 0.1 0 0 0 0 0.15 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(120% 90% at 0% 0%, rgb(76 195 201 / calc(0.07 + var(--pulse) * 0.08)), transparent 60%),
+      radial-gradient(120% 90% at 100% 100%, rgb(228 106 124 / calc(0.06 + var(--pulse) * 0.08)), transparent 60%);
   }
 
   a {
@@ -209,93 +345,33 @@ const signChars = chars('— c9');
   a:hover,
   a:focus-visible {
     text-decoration: underline;
+    text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
   }
 
-  .spread {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    color: var(--tp-ink);
-    perspective: 2600px;
-    /*
-     * 离视口远的摊不渲染，里面的字也就不触发字体下载：首屏只下第一摊要的字体，后两摊滚近了再下。
-     * 首页的字来自每个类别、四种字体都用到，全部一起渲染的话几乎每个字体切片都要下（约 127 KB）。
-     */
-    content-visibility: auto;
-    contain-intrinsic-size: auto 66rem auto 33rem;
-  }
-
-  .page {
-    position: relative;
+  /* 页脚：页码和页名，像小册子的书眉放在下面 */
+  .folio {
+    order: 2;
     display: flex;
-    flex-direction: column;
-    min-width: 0;
-    aspect-ratio: 1;
-    padding: clamp(1.25rem, 3.5vw, 2.5rem);
-    overflow-wrap: anywhere;
-    background-color: color-mix(in srgb, var(--tp-paper) calc(var(--tp-alpha) - var(--pulse) * 8%), transparent);
-    backdrop-filter: var(--tp-filter);
-    -webkit-backdrop-filter: var(--tp-filter);
-    box-shadow:
-      inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.06)),
-      inset 0 0 calc(2rem + var(--pulse) * 3rem) light-dark(rgb(255 255 255 / 0.25), rgb(255 255 255 / calc(0.02 + var(--pulse) * 0.06))),
-      0 18px 48px -20px rgb(0 0 0 / 0.45);
-    transition: transform 1.2s cubic-bezier(0.2, 0.75, 0.15, 1), opacity 0.8s ease;
-  }
-
-  /* 纸的颗粒 */
-  .page::before {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    content: '';
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    opacity: var(--tp-grain);
-    mix-blend-mode: overlay;
-  }
-
-  .page > * {
-    position: relative;
-  }
-
-  /* 折缝：左页右边、右页左边各一道淡淡的阴影 */
-  .page:first-child {
-    transform-origin: right center;
-    background-image: linear-gradient(to left, rgb(0 0 0 / 0.12), transparent 12%);
-  }
-
-  .page:last-child {
-    transform-origin: left center;
-    background-image: linear-gradient(to right, rgb(0 0 0 / 0.08), transparent 10%);
-  }
-
-  /* 还没滚到的一摊是合上的：两页朝折缝立起来（只在 JS 跑起来、没开减少动态效果时） */
-  .booklet[data-unfold] .spread:not(.open) .page:first-child {
-    opacity: 0;
-    transform: rotateY(84deg);
-  }
-
-  .booklet[data-unfold] .spread:not(.open) .page:last-child {
-    opacity: 0;
-    transform: rotateY(-84deg);
-  }
-
-  .label {
-    margin: 0 0 1.5rem;
-    font-family: var(--mono);
-    font-size: 0.6875rem;
+    gap: 0.75em;
+    align-items: baseline;
+    margin: auto 0 0;
+    padding-top: 1em;
+    font-size: 0.75em;
     font-weight: 400;
-    letter-spacing: 0.25em;
-    color: var(--tp-faint);
+    color: var(--faint);
   }
 
-  /* 封面：头像占满整页，四角是站名、编号和翻页 */
+  .folio .no {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  /* 封面：头像占满整页，左下角是站名，右下角翻头像 */
   .cover {
-    aspect-ratio: auto;
     padding: 0;
-    overflow: hidden;
-    color: #f4f3ee;
+    color: #f2f4fa;
+    background: #1b2030;
     perspective: 1600px;
   }
 
@@ -315,80 +391,61 @@ const signChars = chars('— c9');
     display: none;
   }
 
+  .cover :global(.face) {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 头像占位：在夜里带一点星空的青和玫红，站长给了真图以后去掉 */
+  .cover :global(.avatar) {
+    background: linear-gradient(
+      160deg,
+      hsl(222 38% calc(var(--avatar-shade) - 4%)),
+      hsl(340 26% calc(var(--avatar-shade) - 18%))
+    );
+  }
+
   /* 头像翻页：旧的一页绕左边（或右边）翻过去，露出下面新的一页 */
   .cover .slide.turning {
     z-index: 2;
-    animation: turn 0.9s cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
+    animation: avatar-turn 0.9s cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
     transform-origin: left center;
   }
 
   .cover .slide.turning.back {
     transform-origin: right center;
-    animation-name: turn-back;
+    animation-name: avatar-turn-back;
   }
 
-  .cover .slide.turning::after {
-    position: absolute;
-    inset: 0;
-    content: '';
-    background: linear-gradient(to left, rgb(0 0 0 / 0.5), transparent);
-    animation: shade 0.9s ease forwards;
-  }
-
-  @keyframes turn {
+  @keyframes avatar-turn {
     to {
       transform: rotateY(-178deg);
     }
   }
 
-  @keyframes turn-back {
+  @keyframes avatar-turn-back {
     to {
       transform: rotateY(178deg);
     }
   }
 
-  @keyframes shade {
-    from {
-      opacity: 0;
-    }
-  }
-
-  .cover :global(.face) {
-    width: 100%;
-    height: 100%;
-    filter: contrast(1.2) grayscale(1);
-    opacity: 0.88;
-  }
-
-  .cover-mark,
-  .cover-catalog {
-    position: absolute;
-    top: clamp(1rem, 3vw, 1.75rem);
-    z-index: 3;
-    margin: 0;
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.3em;
-  }
-
   .cover-mark {
-    left: clamp(1rem, 3vw, 1.75rem);
-  }
-
-  .cover-catalog {
-    right: clamp(1rem, 3vw, 1.75rem);
+    position: absolute;
+    bottom: calc(var(--page) * 0.06);
+    left: calc(var(--page) * 0.07);
+    margin: 0;
+    font-size: 0.875em;
+    letter-spacing: 0.28em;
+    text-shadow: 0 1px 8px rgb(0 0 0 / 0.4);
   }
 
   .cover-steps {
     position: absolute;
-    right: clamp(1rem, 3vw, 1.75rem);
-    bottom: clamp(0.75rem, 2vw, 1.25rem);
-    z-index: 3;
+    right: calc(var(--page) * 0.05);
+    bottom: calc(var(--page) * 0.045);
     display: flex;
-    gap: 0.5rem;
+    gap: 0.25rem;
     margin: 0;
-    font-family: var(--mono);
-    font-size: 0.875rem;
   }
 
   .cover-steps button {
@@ -397,19 +454,27 @@ const signChars = chars('— c9');
     font: inherit;
     color: inherit;
     cursor: pointer;
-    background: none;
+    background: rgb(0 0 0 / 0.18);
     border: 0;
-    opacity: 0.8;
+    border-radius: 50%;
+    touch-action: manipulation;
+  }
+
+  .cover-steps button:hover:not(:disabled) {
+    background: rgb(0 0 0 / 0.36);
   }
 
   .cover-steps button:disabled {
     cursor: default;
-    opacity: 0.25;
+    opacity: 0.3;
   }
 
-  .tracklist ol {
+  /* 收录：类别名、点线、件数；下面是最近的几部 */
+  .tracks {
     display: grid;
-    gap: 1.25rem;
+    flex: 1;
+    gap: 1.1em;
+    align-content: start;
     padding: 0;
     margin: 0;
     list-style: none;
@@ -417,76 +482,76 @@ const signChars = chars('— c9');
 
   .track {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.6em;
     align-items: baseline;
-    font-size: clamp(1.125rem, 0.9rem + 1vw, 1.5rem);
-  }
-
-  .no,
-  .len {
-    font-family: var(--mono);
-    font-size: 0.6em;
-    font-variant-numeric: tabular-nums;
+    font-size: 1.45em;
+    line-height: 1.2;
   }
 
   .leader {
     flex: 1;
     min-width: 1rem;
-    border-bottom: 1px dotted var(--tp-rule);
-    transform: translateY(-0.3em);
+    border-bottom: 1px dotted var(--rule);
+    transform: translateY(-0.25em);
+  }
+
+  .len {
+    font-size: 0.62em;
+    font-variant-numeric: tabular-nums;
+    color: var(--faint);
   }
 
   .titles {
-    margin: 0.35rem 0 0 calc(0.6em + 0.75rem + 1ch);
-    font-size: 0.6875rem;
-    line-height: 1.6;
-    color: var(--tp-faint);
+    margin: 0.35em 0 0;
+    font-size: 0.82em;
+    line-height: 1.55;
+    color: var(--faint);
   }
 
+  .titles a {
+    color: var(--ink);
+  }
+
+  .sep,
+  .more {
+    color: var(--faint);
+  }
+
+  /* 写在里面：我的声音，像在内页上用铅笔写下的字 */
   .notes-body {
     flex: 1;
-    font-size: 0.9375rem;
-    line-height: 1.9;
-    color: var(--tp-ink);
-  }
-
-  .write {
-    columns: 2 12rem;
-    column-gap: 1.75rem;
+    font-size: 1.05em;
+    line-height: 1.85;
+    color: var(--ink);
   }
 
   .write p {
-    margin: 0 0 0.9em;
+    margin: 0 0 0.8em;
   }
 
   .hello {
-    font-size: 1.5rem;
+    font-size: 1.55em;
     line-height: 1.3;
-    column-span: all;
   }
 
   .sign {
     text-align: right;
   }
 
-  /* 铅笔写字：每个字从左往右「画」出来，带一点灰到黑的变化 */
-  .booklet[data-unfold] .write .ch {
+  /* 铅笔写字：翻到这一页时，每个字从左往右「画」出来 */
+  .booklet[data-flip] .notes:not(.shown) .write .ch {
     opacity: 0;
-    clip-path: inset(0 100% 0 0);
   }
 
-  .booklet[data-unfold] .open .write .ch {
-    animation: pencil 0.32s ease-out calc(0.9s + var(--i) * 32ms) forwards;
+  .booklet[data-flip] .notes.shown .write .ch {
+    animation: pencil 0.32s ease-out calc(0.25s + var(--i) * 28ms) both;
   }
 
   @keyframes pencil {
     0% {
-      opacity: 0.4;
+      opacity: 0.35;
       clip-path: inset(0 100% 0 0);
       filter: blur(0.6px);
-    }
-    70% {
-      opacity: 0.9;
     }
     100% {
       opacity: 1;
@@ -495,6 +560,7 @@ const signChars = chars('— c9');
     }
   }
 
+  /* 摘录：语录在整页中间，翻到这一页时从模糊里浮出来 */
   .lyric-body {
     display: grid;
     flex: 1;
@@ -505,97 +571,52 @@ const signChars = chars('— c9');
     width: 100%;
   }
 
-  .lyric-body :global(figure) {
-    margin-inline: auto;
-  }
-
-  /* 摘录慢慢浮现 */
-  .booklet[data-unfold] .spread:not(.open) .lyric-body {
+  .booklet[data-flip] .lyric:not(.shown) .lyric-body {
     opacity: 0;
   }
 
-  .booklet[data-unfold] .open .lyric-body {
-    animation: surface 3.2s ease 1s both;
+  .booklet[data-flip] .lyric.shown .lyric-body {
+    animation: surface 2.4s ease 0.3s both;
   }
 
   @keyframes surface {
     from {
       opacity: 0;
       filter: blur(8px);
-      transform: translateY(0.75rem);
     }
   }
 
-  .credits dl {
+  /* 最近完成：原名一行，下面左边是类别，右边是日期（我的声音） */
+  .recent {
     display: grid;
-    gap: 0.9rem;
+    flex: 1;
+    gap: 0.95em;
+    align-content: start;
+    padding: 0;
     margin: 0;
+    list-style: none;
   }
 
-  .credit {
+  .recent li {
     display: grid;
-    gap: 0.15rem;
+    grid-template-columns: 1fr auto;
+    gap: 0.1em 1em;
   }
 
-  .credit dt {
-    font-size: 1.125rem;
+  .recent-title {
+    grid-column: 1 / -1;
+    font-size: 1.2em;
     line-height: 1.3;
   }
 
-  .credit dd {
-    display: flex;
-    gap: 0.5rem;
-    align-items: baseline;
-    margin: 0;
-    font-size: 0.8125rem;
-    color: var(--tp-faint);
+  .recent-kind,
+  .recent-date {
+    font-size: 0.85em;
+    color: var(--faint);
   }
 
-  .credit dd .voice {
-    color: var(--tp-faint);
-  }
-
-  .colophon-list {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.4rem 1rem;
-    margin: 0;
-    font-size: 0.75rem;
-    line-height: 1.6;
-  }
-
-  .colophon-list dt {
-    font-family: var(--mono);
-    color: var(--tp-faint);
-  }
-
-  .colophon-list dd {
-    margin: 0;
-  }
-
-  .colophon-list .voice {
-    color: var(--tp-ink);
-  }
-
-  .barcode {
-    display: flex;
-    gap: 6px;
-    height: 3rem;
-    margin: auto 0 0;
-  }
-
-  .bars {
-    display: flex;
-    gap: 2px;
-  }
-
-  .bars span {
-    width: 1px;
-    background: var(--tp-ink);
-  }
-
-  .bars .fav {
-    width: 3px;
+  .recent-date {
+    font-variant-numeric: tabular-nums;
   }
 
   .visually-hidden {
@@ -607,58 +628,30 @@ const signChars = chars('— c9');
     white-space: nowrap;
   }
 
-  @media (max-width: 40rem) {
+  @media (max-width: 47.99rem) {
     .booklet {
-      gap: 60svh;
+      --page: min(88vw, 66svh);
     }
 
-    .spread {
-      grid-template-columns: 1fr;
+    .pages {
+      grid-template-columns: var(--page);
+      gap: 1rem;
     }
 
-    .page:first-child {
-      transform-origin: center bottom;
-      background-image: none;
+    .booklet:not([data-flip]) .cover {
+      grid-column: 1;
     }
 
-    .page:last-child {
-      transform-origin: center top;
-      background-image: none;
-    }
-
-    .page + .page {
-      border-top: 1px dashed var(--tp-rule);
-    }
-
-    /* 手机上两页上下叠着，从中间那道线往上、往下展开 */
-    .booklet[data-unfold] .spread:not(.open) .page:first-child {
-      transform: rotateX(-84deg);
-    }
-
-    .booklet[data-unfold] .spread:not(.open) .page:last-child {
-      transform: rotateX(84deg);
-    }
-
-    .cover {
-      aspect-ratio: 1;
-    }
-
-    .page:not(.cover) {
-      aspect-ratio: auto;
-    }
-
-    .lyric {
-      min-height: 50svh;
-    }
-
-    .write {
-      columns: 1;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
     .page {
-      transition: none;
+      font-size: clamp(0.75rem, calc(var(--page) * 0.036), 0.9375rem);
+    }
+
+    .tracks {
+      gap: 0.75em;
+    }
+
+    .track {
+      font-size: 1.3em;
     }
   }
 </style>

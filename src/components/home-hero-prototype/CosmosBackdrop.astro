@@ -1,7 +1,7 @@
 ---
 /**
- * PROTOTYPE（第三轮）：首页的宇宙背景，钉在视口上、在小册子后面，只在首页（ADR-0004）。
- * 首屏先显示构建时画好的远景（横屏、竖屏各一张，浅色、深色各一张），WebGL 画好第一帧后淡入盖住它。
+ * PROTOTYPE（第四轮）：首页的宇宙背景，钉在视口上、在小册子后面，只在首页（ADR-0004）。首页固定是夜里。
+ * 首屏先显示构建时画好的星空（横屏、竖屏各一张），WebGL 画好第一帧后淡入盖住它。
  * 场景在 gl-cosmos.ts，控制器在 cosmos.ts。
  *
  * 参数：?gl=0 强制静态后备；?pulse=demo 用假的节拍看「跟着音乐呼吸」（R2 还没配 CORS，读不到真的背景音乐）；
@@ -22,15 +22,13 @@ const records = data.categories.flatMap((c, arm) =>
     key: `${c.key}/${r.slug}`,
   })),
 );
-const still = (orient: string, scheme: string) => `/home-hero-prototype/cosmos-${orient}-${scheme}.webp`;
+const still = (orient: string) => `/home-hero-prototype/cosmos-${orient}.webp`;
 ---
 
 <div class="cosmos" aria-hidden="true" data-cosmos data-records={JSON.stringify(records)}>
   <picture class="still">
-    <source srcset={still('tall', 'dark')} media="(prefers-color-scheme: dark) and (orientation: portrait)" />
-    <source srcset={still('wide', 'dark')} media="(prefers-color-scheme: dark)" />
-    <source srcset={still('tall', 'light')} media="(orientation: portrait)" />
-    <img src={still('wide', 'light')} alt="" decoding="async" />
+    <source srcset={still('tall')} media="(orientation: portrait)" />
+    <img src={still('wide')} alt="" decoding="async" />
   </picture>
 </div>
 
@@ -45,8 +43,7 @@ const still = (orient: string, scheme: string) => `/home-hero-prototype/cosmos-$
     z-index: -1;
     height: 100lvh;
     overflow: hidden;
-    color: var(--shell-fg);
-    background-color: var(--shell-bg);
+    background-color: #040611;
   }
 
   .still img {

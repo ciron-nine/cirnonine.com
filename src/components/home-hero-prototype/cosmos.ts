@@ -1,8 +1,8 @@
 /**
- * PROTOTYPE（第三轮）：宇宙背景的控制器。这个文件很小，跟着首页一起加载；OGL 和场景代码按需加载：
+ * PROTOTYPE（第四轮）：宇宙背景的控制器。这个文件很小，跟着首页一起加载；OGL 和场景代码按需加载：
  * 浏览器空闲之后才 import()，首屏只有静态后备（构建时画好的远景）。
  *
- * - 滚动进度：0 是第一屏，1、2、3 是三摊小册子各自居中；中间按滚动位置插值，停在每一摊附近时多停一会儿
+ * - 镜头跟着小册子翻到哪儿走（book-progress.ts）：0 合着是星空，1 翻开第一页到行星，2 翻到第二页到星系
  * - 没有 WebGL（或者 ?gl=0）：停在静态后备
  * - prefers-reduced-motion：WebGL 只画一帧远景，不跟着滚动动
  * - 音乐强弱（pulse.ts）同时交给小册子：写在 --pulse 上，纸跟着透一点光
@@ -10,6 +10,7 @@
  */
 import type { Mounted, MountOptions } from './gl-common';
 import { createPulse, type Pulse } from './pulse';
+import { bookProgress } from './book-progress';
 
 let mounted: Mounted | null = null;
 let generation = 0;
@@ -45,33 +46,6 @@ function webglAvailable(): boolean {
   }
 }
 
-/** 某一摊居中时的 scrollY */
-function centeredAt(el: HTMLElement): number {
-  const rect = el.getBoundingClientRect();
-  return scrollY + rect.top + rect.height / 2 - innerHeight / 2;
-}
-
-/**
- * 滚动进度。段与段之间用平滑阶梯：一摊居中前后的一段距离里进度几乎不变（镜头停在星体旁边），
- * 两摊之间的空白里镜头才往前飞。
- */
-function makeProgress(spreads: HTMLElement[]): () => number {
-  return () => {
-    const anchors = [0, ...spreads.map(centeredAt)];
-    const y = scrollY;
-    for (let i = 0; i < anchors.length - 1; i++) {
-      const a = anchors[i];
-      const b = anchors[i + 1];
-      if (y <= b || i === anchors.length - 2) {
-        const t = Math.min(Math.max((y - a) / Math.max(b - a, 1), 0), 1);
-        const s = Math.min(Math.max((t - 0.12) / 0.76, 0), 1);
-        return i + s * s * (3 - 2 * s);
-      }
-    }
-    return anchors.length - 1;
-  };
-}
-
 /** 星系里的记录星：一个类别一条旋臂，越近完成的越靠旋臂外端，心头好更亮 */
 function readRecords(root: HTMLElement): MountOptions['records'] {
   const sample = new URL(location.href).searchParams.get('sample') === '1';
@@ -99,7 +73,6 @@ async function start(force = false) {
   if (mine !== generation) return;
 
   const booklet = document.querySelector<HTMLElement>('[data-booklet]');
-  const spreads = [...document.querySelectorAll<HTMLElement>('[data-stop]')];
   pulse ??= createPulse();
   const canvas = document.createElement('canvas');
   frame.append(canvas);
@@ -109,7 +82,7 @@ async function start(force = false) {
     still: reduced.matches,
     pulse,
     records: readRecords(frame),
-    progress: makeProgress(spreads),
+    progress: bookProgress,
     onPulse: (level) => booklet?.style.setProperty('--pulse', level.toFixed(3)),
   });
   if (!mounted) {

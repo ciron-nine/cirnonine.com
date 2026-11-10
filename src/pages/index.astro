@@ -8,8 +8,8 @@ const data = await loadHomeData();
 ---
 
 <!--
-  PROTOTYPE（第三轮，#19）：硫酸纸小册子浮在宇宙背景上，滚动就是在宇宙里往前推。
-  小册子是 D 专辑内页的原型移植，背景在 home-hero-prototype/gl-cosmos.ts。正式首页按选定方案在 #19 里重写。
+  PROTOTYPE（第四轮，#19）：星空下的一本专辑小册子。往下滚就是翻书，镜头跟着翻页从星空飞到行星、再到星系。
+  小册子在 home-hero-prototype/Booklet.astro，背景在 gl-cosmos.ts。正式首页按选定方案在 #19 里重写。
 -->
 <Shell title="cirnonine">
   <CosmosBackdrop data={data} />
@@ -18,6 +18,13 @@ const data = await loadHomeData();
     <Booklet data={data} />
   </main>
 </Shell>
+
+<style is:global>
+  /* 首页固定是夜里：外壳的颜色都取深色那一套（只在首页，换页时这段样式跟着换掉） */
+  :root {
+    color-scheme: dark;
+  }
+</style>
 
 <style>
   .visually-hidden {

@@ -16,7 +16,7 @@ export interface MountOptions {
   pulse: Pulse;
   /** 每条记录在星系里的位置和亮度 */
   records: { arm: number; along: number; mag: number }[];
-  /** 现在滚到哪儿了：0 是第一屏远景，1、2、3 是三摊各自居中 */
+  /** 小册子翻到哪儿了：0 合着（星空），1 翻开第一页（行星），2 翻到第二页（星系） */
   progress(): number;
   /** 每帧把音乐强弱交出去，小册子的纸用它一起呼吸 */
   onPulse(level: number): void;
