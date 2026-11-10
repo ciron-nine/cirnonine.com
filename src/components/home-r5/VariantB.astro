@@ -1,73 +1,108 @@
 ---
 /**
- * PROTOTYPE（首页第五轮）B 记录星图 · 印刷星图。
+ * PROTOTYPE（首页第六轮）B 记录星图 · 印刷星图。
  * 整页是一张印在白纸上的天图：蓝色的赤经赤纬网，黑色的星。四个类别各是一个天区（阶梯状的星座边界），
  * 每条记录是一颗可以点的星：越近完成的越靠中心，心头好是红色的大星，同一系列连成星座。
- * 星图缓慢摆动；鼠标处有一个望远镜准星，读出它所在的坐标。
+ *
+ * 记录多了怎么办（b-chart-data.ts）：星按黄金角均匀散开；名字分三个缩放级别各自避让，不会重叠，
+ * 放不下的名字先不显示，放大以后才出来，像地图一样。星图可以滚轮缩放、拖动，点类别名缩放到那个天区。
+ * 动起来：打开时星按完成的先后一颗颗印上去、星座线随后连起来；暗星闪；偶尔一颗流星划过；
+ * 指一颗星时它的系列亮起来、星表里那一行也亮；指星表里的一行，星图上那颗星亮。鼠标处有准星读坐标。
  * 右边一页是星表，也就是小册子：封面（底片）、写在里面（序）、收录（图例）、最近完成（星表）、摘录（脚注）。
+ *
+ * sample：B2 用的示意数据（造这么多条假记录），看堆满以后的样子。
  */
 import type { HomeData } from '../home-hero-prototype/home-data';
 import AvatarPlaceholder from '../home-hero-prototype/AvatarPlaceholder.astro';
 import RandomQuote from '../home-hero-prototype/RandomQuote.astro';
-import { C, chart } from './b-chart-data';
+import { C, DISC, LEVELS, chart } from './b-chart-data';
 
 interface Props {
   data: HomeData;
+  sample?: number;
 }
-const { data } = Astro.props;
+const { data, sample = 0 } = Astro.props;
+const uid = sample ? 'b2' : 'b';
 const [hello, ...notes] = data.intro;
 const CATEGORY_LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
 
-const { stars, lines, field, boundary } = chart(data);
+const { stars, lines, field, boundary, regions, total } = chart(data, sample);
 const hours = Array.from({ length: 24 }, (_, h) => h);
+/** 印上去的总时长（毫秒），记录越多每颗越快 */
+const INK_MS = 2600;
+const inkDelay = (order: number) => Math.round((order / Math.max(total, 1)) * INK_MS);
 ---
 
 <div class="b" data-b>
   <div class="b-chart-wrap">
-    <svg class="b-chart" viewBox="0 0 1000 1000" role="img" aria-label="记录星图：每条记录是一颗星" data-b-chart>
+    <svg class="b-chart" viewBox="0 0 1000 1000" role="img" aria-label={`记录星图：${total} 条记录，每条是一颗星`} data-b-chart data-lod="1" style="--z: 1">
       <defs>
-        <clipPath id="b-disc"><circle cx={C} cy={C} r="482" /></clipPath>
+        <clipPath id={`${uid}-disc`}><circle cx={C} cy={C} r={DISC} /></clipPath>
       </defs>
-      <g class="b-sky" clip-path="url(#b-disc)">
+      <g class="b-sky" clip-path={`url(#${uid}-disc)`}>
+        <rect x="0" y="0" width="1000" height="1000" class="b-drag" />
         <g class="b-grid">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <circle cx={C} cy={C} r={i * 60} />)}
           {hours.map((h) => (
-            <line x1={C} y1={C} x2={C + Math.cos((h * 15 * Math.PI) / 180) * 482} y2={C + Math.sin((h * 15 * Math.PI) / 180) * 482} />
+            <line x1={C} y1={C} x2={C + Math.cos((h * 15 * Math.PI) / 180) * DISC} y2={C + Math.sin((h * 15 * Math.PI) / 180) * DISC} />
           ))}
         </g>
         <g class="b-bounds">{[0, 90, 180, 270].map((d) => <path d={boundary(d)} />)}</g>
-        <g class="b-field">{field.map((f) => <circle cx={f.x.toFixed(1)} cy={f.y.toFixed(1)} r={f.s.toFixed(2)} />)}</g>
-        <g class="b-lines">
-          {lines.map(([a, b]) => <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />)}
+        <g class="b-field">
+          {field.map((f) => (
+            <circle cx={f.x.toFixed(1)} cy={f.y.toFixed(1)} r={f.s.toFixed(2)} class:list={{ tw: f.twinkle }} style={f.twinkle ? `--tw:${f.delay.toFixed(2)}s` : undefined} />
+          ))}
         </g>
-        <g class="b-regions" aria-hidden="true">
+        <g class="b-lines">
+          {lines.map(({ a, b, series }) => {
+            const len = Math.hypot(b.x - a.x, b.y - a.y);
+            return (
+              <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} data-series={series} style={`--len:${len.toFixed(1)};--d:${inkDelay(b.order) + 300}ms`} />
+            );
+          })}
+        </g>
+        <g class="b-regions">
           {
-            data.categories.map((cat, k) => {
-              const ang = ((k * 90 + 45) * Math.PI) / 180;
+            regions.map((r) => (
+              <text x={r.x} y={r.y} text-anchor="middle" data-zoom-to={`${r.fx},${r.fy}`} role="button" tabindex="0" aria-label={`放大到${r.label}天区`}>
+                {r.label}
+              </text>
+            ))
+          }
+        </g>
+        <path class="b-meteor" data-b-meteor d="M0 0" />
+        <g class="b-stars">
+          {
+            stars.map((s) => {
+              const Tag = s.rec.href ? 'a' : 'g';
               return (
-                <text x={C + Math.cos(ang) * 215} y={C + Math.sin(ang) * 215} text-anchor="middle">
-                  {cat.label}
-                </text>
+                <Tag
+                  href={s.rec.href}
+                  class:list={['b-star', { fav: s.rec.favorite }]}
+                  aria-label={s.rec.href ? s.rec.title : undefined}
+                  data-key={s.rec.key}
+                  data-title={s.rec.title}
+                  data-series={s.rec.series}
+                  style={`--d:${inkDelay(s.order)}ms`}
+                >
+                  <circle cx={s.x} cy={s.y} r={s.size + 6} class="b-hit" style={`--r:${(s.size + 6).toFixed(2)}`} />
+                  {s.rec.favorite && <circle cx={s.x} cy={s.y} r={s.size + 3.5} class="b-ring" style={`--r:${(s.size + 3.5).toFixed(2)}`} />}
+                  <circle cx={s.x} cy={s.y} r={s.size} class="b-dot" style={`--r:${s.size.toFixed(2)}`} />
+                  {LEVELS.map((level) => {
+                    const l = s.labels[level];
+                    return l ? (
+                      <text x={l.x.toFixed(1)} y={l.y.toFixed(1)} text-anchor={l.anchor} class={`l${level}`} lang={s.rec.lang} aria-hidden="true">
+                        {s.rec.title}
+                      </text>
+                    ) : null;
+                  })}
+                </Tag>
               );
             })
           }
         </g>
-        <g class="b-stars">
-          {
-            stars.map((s) => (
-              <a href={s.r.href} class:list={['b-star', { fav: s.r.favorite }]} aria-label={s.r.originalTitle}>
-                <circle cx={s.x} cy={s.y} r={s.size + 6} class="b-hit" />
-                {s.r.favorite && <circle cx={s.x} cy={s.y} r={s.size + 3.5} class="b-ring" />}
-                <circle cx={s.x} cy={s.y} r={s.size} class="b-dot" />
-                <text x={s.label.x} y={s.label.y} text-anchor={s.label.anchor} lang={s.r.lang}>
-                  {s.r.originalTitle}
-                </text>
-              </a>
-            ))
-          }
-        </g>
       </g>
-      <circle cx={C} cy={C} r="482" class="b-rim" />
+      <circle cx={C} cy={C} r={DISC} class="b-rim" />
       <g class="b-hours" aria-hidden="true">
         {
           hours.map((h) => (
@@ -86,6 +121,12 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
         <text x="32" y="-30" data-b-coord></text>
       </g>
     </svg>
+    <div class="b-zoom" role="group" aria-label="缩放星图">
+      <button type="button" data-zoom="in" aria-label="放大">＋</button>
+      <button type="button" data-zoom="out" aria-label="缩小">－</button>
+      <button type="button" data-zoom="reset" aria-label="看全图">全图</button>
+    </div>
+    {sample > 0 && <p class="b-sample">示意：{total} 条假记录</p>}
   </div>
 
   <aside class="b-sheet" aria-label="星表">
@@ -116,14 +157,16 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
       {notes.map((p) => <p>{p}</p>)}
     </section>
 
-    <section aria-labelledby="b-legend">
-      <h2 id="b-legend" class="b-h">收录</h2>
+    <section aria-labelledby={`${uid}-legend`}>
+      <h2 id={`${uid}-legend`} class="b-h">收录</h2>
       <ul class="b-legend">
         {
-          data.categories.map((c) => (
+          regions.map((r) => (
             <li>
-              <a href={c.href}>{c.label}</a>
-              <span class="b-n">{c.records.length}</span>
+              <a href={r.href}>{r.label}</a>
+              <button type="button" class="b-focus" data-zoom-to={`${r.fx},${r.fy}`} aria-label={`在星图上看${r.label}`}>
+                {r.count}
+              </button>
             </li>
           ))
         }
@@ -132,13 +175,13 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
       </ul>
     </section>
 
-    <section aria-labelledby="b-recent">
-      <h2 id="b-recent" class="b-h">最近完成</h2>
+    <section aria-labelledby={`${uid}-recent`}>
+      <h2 id={`${uid}-recent`} class="b-h">最近完成</h2>
       <table class="b-table">
         <tbody>
           {
             data.recent.map((r) => (
-              <tr>
+              <tr data-key={`${r.category}/${r.slug}`}>
                 <td class="b-cat">{CATEGORY_LABEL[r.category]}</td>
                 <td>
                   <a href={r.href} lang={r.lang}>
@@ -153,8 +196,8 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
       </table>
     </section>
 
-    <section class="b-note" aria-labelledby="b-quote">
-      <h2 id="b-quote" class="b-h">摘录</h2>
+    <section class="b-note" aria-labelledby={`${uid}-quote`}>
+      <h2 id={`${uid}-quote`} class="b-h">摘录</h2>
       <RandomQuote quotes={data.quotes} />
     </section>
   </aside>
@@ -178,6 +221,7 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
 
   .b-chart-wrap {
     position: sticky;
+    touch-action: none;
     top: 0;
     display: grid;
     place-items: center;
@@ -196,7 +240,8 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
   .b-chart {
     width: min(100%, calc(100svh - 5rem));
     height: auto;
-    overflow: visible;
+    /* 放大以后星图不能画到框外面去 */
+    overflow: hidden;
   }
 
   /* 星图缓慢摆动 */
@@ -243,6 +288,10 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
 
   .b-regions text {
     font-size: 30px;
+    /* 一圈纸色描边：星点压在上面时也读得出来 */
+    stroke: var(--b-paper);
+    stroke-width: 7px;
+    paint-order: stroke;
     letter-spacing: 0.6em;
     fill: var(--b-grid);
     opacity: 0.55;
@@ -250,6 +299,13 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
 
   .b-hit {
     fill: transparent;
+  }
+
+  /* 放大时星点只按倍数的平方根变大（--zs 由脚本给），不会大成一个个黑饼 */
+  .b-hit,
+  .b-ring,
+  .b-dot {
+    r: calc(var(--r) * 1px / var(--zs, 1));
   }
 
   .b-dot {
@@ -266,23 +322,175 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
     stroke-width: 1;
   }
 
+  /* 名字：只显示当前缩放级别算好的那一份；字号跟着缩放变小，屏幕上看起来一样大 */
   .b-star text {
-    font-size: 10.5px;
+    display: none;
+    font-size: calc(11px / var(--z));
     fill: var(--b-ink);
-    opacity: 0.55;
+    opacity: 0.6;
+  }
+
+  .b-chart[data-lod='1'] .l1,
+  .b-chart[data-lod='2'] .l2,
+  .b-chart[data-lod='4'] .l4 {
+    display: inline;
   }
 
   .b-star:hover text,
-  .b-star:focus-visible text {
+  .b-star:focus-visible text,
+  .b-star.lit text {
     opacity: 1;
-    font-size: 13px;
   }
 
   .b-star:hover .b-dot,
-  .b-star:focus-visible .b-dot {
+  .b-star:focus-visible .b-dot,
+  .b-star.lit .b-dot {
+    fill: var(--b-red);
     stroke: var(--b-paper);
     stroke-width: 2;
     paint-order: stroke;
+  }
+
+  .b-lines line.lit {
+    stroke: var(--b-red);
+    stroke-width: 1.6;
+    opacity: 1;
+  }
+
+  .b-table tr.lit {
+    background: rgb(200 50 62 / 0.08);
+  }
+
+  .b-drag {
+    fill: transparent;
+    cursor: grab;
+  }
+
+  .b-chart.dragging .b-drag {
+    cursor: grabbing;
+  }
+
+  .b-regions text {
+    cursor: zoom-in;
+  }
+
+  .b-regions text:hover,
+  .b-regions text:focus-visible {
+    opacity: 0.9;
+    outline: none;
+  }
+
+  /* 流星：印刷星图上的一道虚线，划过去以后淡掉 */
+  .b-meteor {
+    fill: none;
+    stroke: var(--b-ink);
+    stroke-width: 1.2;
+    stroke-linecap: round;
+    opacity: 0;
+  }
+
+  .b-meteor.fly {
+    stroke-dasharray: 220;
+    stroke-dashoffset: 220;
+    animation: b-meteor 1.6s ease-out forwards;
+  }
+
+  @keyframes b-meteor {
+    10% {
+      opacity: 0.85;
+    }
+    60% {
+      stroke-dashoffset: 0;
+      opacity: 0.85;
+    }
+    100% {
+      stroke-dashoffset: -220;
+      opacity: 0;
+    }
+  }
+
+  /* 打开时星按完成的先后一颗颗印上去，星座线随后连起来 */
+  .b[data-motion] .b-star {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: b-ink 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d) both;
+  }
+
+  @keyframes b-ink {
+    from {
+      opacity: 0;
+      transform: scale(2.4);
+    }
+  }
+
+  .b[data-motion] .b-lines line {
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: var(--len);
+    animation: b-draw 0.9s ease var(--d) forwards;
+  }
+
+  @keyframes b-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* 暗星闪 */
+  .b[data-motion] .b-field .tw {
+    animation: b-twinkle 3.6s ease-in-out var(--tw) infinite alternate;
+  }
+
+  @keyframes b-twinkle {
+    to {
+      opacity: 0.12;
+    }
+  }
+
+  /* 放大时星图不再摆，免得字在动 */
+  .b-chart:not([data-lod='1']) .b-sky {
+    animation-play-state: paused;
+  }
+
+  .b-zoom {
+    position: absolute;
+    bottom: 1rem;
+    left: 0;
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .b-zoom button,
+  .b-focus {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0 0.6rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    color: var(--b-ink);
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid rgb(15 20 32 / 0.2);
+  }
+
+  .b-focus {
+    min-height: 1.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--b-faint);
+    cursor: zoom-in;
+    border-color: transparent;
+  }
+
+  .b-focus:hover {
+    border-color: rgb(15 20 32 / 0.2);
+  }
+
+  .b-sample {
+    position: absolute;
+    right: 0;
+    bottom: 1rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--b-red);
   }
 
   .b-star:focus-visible {
@@ -509,15 +717,15 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
       width: 100%;
     }
 
-    /* 手机上字太小：只留心头好的名字，其他的点按（获得焦点）时才显示 */
-    .b-star text {
-      font-size: 22px;
-      opacity: 0;
+    .b-zoom,
+    .b-sample {
+      position: static;
+      margin-top: 0.5rem;
     }
 
-    .b-star.fav text,
-    .b-star:focus-visible text {
-      opacity: 1;
+    /* 手机上 1× 的字太小：只留心头好的名字，放大以后其他名字才出来 */
+    .b-chart[data-lod='1'] .b-star:not(.fav) .l1 {
+      display: none;
     }
 
     .b-sheet {
@@ -528,6 +736,10 @@ const hours = Array.from({ length: 24 }, (_, h) => h);
   @media (prefers-reduced-motion: reduce) {
     .b-sky {
       animation: none;
+    }
+
+    .b-meteor {
+      display: none;
     }
   }
 </style>

@@ -1,8 +1,8 @@
 ---
 /**
- * PROTOTYPE（首页第五轮，#19）：第一轮的三个方向重新设计，每版的背景和小册子一起做，视觉立场各不相同。
- * 用 ?variant=A / B / C 切换；开发环境底部有切换条（← → 键也行），生产构建里也认 ?variant=，方便在预览部署上看。
- * A 函数三维 · 蓝晒图纸 / B 记录星图 · 印刷星图 / C 极光与流星 · 极夜电影。
+ * PROTOTYPE（首页第六轮，#19）：A、B 两个方向二选一（C 极光已经去掉）。B2 是同一张星图堆到 500 条记录时的样子。
+ * 用 ?variant=A / B / B2 切换；开发环境底部有切换条（← → 键也行），生产构建里也认 ?variant=，方便在预览部署上看。
+ * A 函数三维 · 蓝晒图纸 / B 记录星图 · 印刷星图。
  * 选定后按正式代码重写（#19），落选的变体只留在 prototype 分支上。
  */
 import Shell from '../components/shell/Shell.astro';
@@ -10,7 +10,6 @@ import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
 import { loadHomeData } from '../components/home-hero-prototype/home-data';
 import VariantA from '../components/home-r5/VariantA.astro';
 import VariantB from '../components/home-r5/VariantB.astro';
-import VariantC from '../components/home-r5/VariantC.astro';
 
 const data = await loadHomeData();
 ---
@@ -24,8 +23,8 @@ const data = await loadHomeData();
     <div data-variant="B" data-variant-name="记录星图 · 印刷星图" hidden>
       <VariantB data={data} />
     </div>
-    <div data-variant="C" data-variant-name="极光与流星 · 极夜电影" hidden>
-      <VariantC data={data} />
+    <div data-variant="B2" data-variant-name="记录星图 · 堆到 500 条的样子" hidden>
+      <VariantB data={data} sample={500} />
     </div>
   </main>
   {import.meta.env.DEV && <PrototypeSwitcher />}

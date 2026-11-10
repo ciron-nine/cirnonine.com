@@ -20,25 +20,26 @@ function step([x, y, z]: number[], dt: number): number[] {
   return [0, 1, 2].map((i) => [x, y, z][i] + (dt / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
 }
 
+/**
+ * 流线：先积分出一条很长的轨道，在上面每隔一段取一个起点（不加随机抖动，起点都落在吸引子上），
+ * 从每个起点往前积分一小段。这样几千条流线均匀地铺满整个吸引子，不会有几团乱线。
+ */
 function streamlines(count: number, length: number) {
-  const dt = 0.006;
+  const dt = 0.005;
   let p = [1.1, 2.1, -2];
-  for (let i = 0; i < 4000; i++) p = step(p, dt);
-  const seeds: number[][] = [];
-  for (let i = 0; i < count; i++) {
-    for (let k = 0; k < 37; k++) p = step(p, dt);
-    seeds.push([p[0] + (Math.random() - 0.5) * 0.6, p[1] + (Math.random() - 0.5) * 0.6, p[2] + (Math.random() - 0.5) * 0.6]);
-  }
+  for (let i = 0; i < 6000; i++) p = step(p, dt);
+  const gap = 23;
   const verts = count * length * 2;
   const position = new Float32Array(verts * 3);
   const along = new Float32Array(verts);
   const seed = new Float32Array(verts);
   let v = 0;
   for (let s = 0; s < count; s++) {
-    let q = seeds[s];
-    const r = Math.random();
+    for (let k = 0; k < gap; k++) p = step(p, dt);
+    let q = p;
+    const r = (s * 0.6180339887) % 1;
     for (let i = 0; i < length; i++) {
-      const n = step(q, dt * 2);
+      const n = step(q, dt * 1.6);
       for (const [pt, t] of [
         [q, i / length],
         [n, (i + 1) / length],
@@ -62,16 +63,16 @@ const vertex = /* glsl */ `
   uniform mat4 projectionMatrix;
   uniform float uTime;
   varying float vGlow;
-  varying float vDepth;
+  varying float vNear;
   void main() {
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
-    // 亮点沿流线走：head 是这条线上亮点现在的位置，身后 0.35 长的尾巴渐隐
-    float head = fract(uTime * (0.08 + seed * 0.06) + seed * 7.0);
-    float d = head - along;
-    float tail = d >= 0.0 ? exp(-d * 9.0) : 0.0;
-    vGlow = 0.03 + tail * 0.75;
-    vDepth = clamp((-mv.z - 2.0) / 4.0, 0.0, 1.0);
+    // 每条线上有三段短亮纹一起往前流，像墨在细管里走；线的两头淡出，不会有硬的断头
+    float d = fract(along * 3.0 - uTime * (0.12 + seed * 0.05) + seed);
+    float dash = smoothstep(0.0, 0.04, d) * exp(-d * 7.0);
+    float ends = smoothstep(0.0, 0.12, along) * smoothstep(1.0, 0.85, along);
+    vGlow = (0.035 + dash * 0.6) * ends;
+    vNear = clamp((6.5 + mv.z) / 3.0, 0.0, 1.0);
   }
 `;
 
@@ -79,12 +80,12 @@ const fragment = /* glsl */ `
   precision highp float;
   uniform float uPulse;
   varying float vGlow;
-  varying float vDepth;
+  varying float vNear;
   void main() {
-    // 蓝晒：越亮越接近纸白，远处淡
-    vec3 white = vec3(0.86, 0.92, 0.97);
-    vec3 cyan = vec3(0.45, 0.68, 0.92);
-    vec3 col = mix(cyan, white, vGlow) * vGlow * mix(1.0, 0.45, vDepth) * (1.0 + uPulse * 0.4);
+    // 蓝晒：近处、亮处接近纸白，远处偏青
+    vec3 white = vec3(0.9, 0.95, 1.0);
+    vec3 cyan = vec3(0.4, 0.64, 0.9);
+    vec3 col = mix(cyan, white, clamp(vNear * 0.7 + vGlow, 0.0, 1.0)) * vGlow * mix(0.45, 1.0, vNear) * (1.0 + uPulse * 0.4);
     // 画布是透明的，透明度跟着亮度走：暗的线淡下去，而不是在蓝纸上变成黑线
     gl_FragColor = vec4(col, max(col.r, max(col.g, col.b)));
   }
