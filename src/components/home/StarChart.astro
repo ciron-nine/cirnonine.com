@@ -1,0 +1,444 @@
+---
+/**
+ * 首页的记录星图（#19 选定的 B）：一张印在白纸上的天图。蓝色的赤经赤纬网和阶梯状的天区边界，
+ * 四个类别各一个天区；每条记录是一颗可以点的星，心头好是红色的大星，同一系列连成星座。
+ * 位置和名字的位置在 lib/star-chart.ts 里算好；缩放、拖动、准星、点亮、流星在 star-chart.ts。
+ *
+ * 名字分三个缩放级别各算一份（text.level-1 / level-2 / level-4），星图只显示当前级别的那一份；
+ * 放大以后放得下的名字才出来，字号跟着变小，屏幕上看起来一样大。
+ * 动起来（JS 跑起来、没开减少动态效果时）：打开时星按完成先后一颗颗印上去，星座线随后连起来；暗星闪；偶尔一颗流星。
+ * 键盘：星图只占一个 Tab 位置，方向键在星之间移动（star-chart.ts）。
+ */
+import { CENTER as C, LEVELS, RADIUS as DISC, type StarChartData } from '../../lib/star-chart';
+
+interface Props {
+  chart: StarChartData;
+}
+const { stars, lines, field, boundaries, regions, total } = Astro.props.chart;
+const hours = Array.from({ length: 24 }, (_, h) => h);
+const at = (deg: number, r: number) => ({ x: C + Math.cos((deg * Math.PI) / 180) * r, y: C + Math.sin((deg * Math.PI) / 180) * r });
+/** 印上去的总时长（毫秒）：记录越多每颗越快 */
+const INK_MS = 2600;
+const inkDelay = (order: number) => Math.round((order / Math.max(total, 1)) * INK_MS);
+---
+
+<div class="star-chart" data-star-chart>
+  <svg viewBox="0 0 1000 1000" role="group" aria-label={`记录星图：${total} 条记录，每条是一颗星；方向键在星之间移动`} data-lod="1" style="--z: 1">
+    <defs>
+      <clipPath id="star-chart-disc"><circle cx={C} cy={C} r={DISC} /></clipPath>
+    </defs>
+    <g class="sky" clip-path="url(#star-chart-disc)">
+      <rect x="0" y="0" width="1000" height="1000" class="drag" />
+      <g class="grid">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <circle cx={C} cy={C} r={i * 60} />)}
+        {hours.map((h) => <line x1={C} y1={C} x2={at(h * 15, DISC).x} y2={at(h * 15, DISC).y} />)}
+      </g>
+      <g class="bounds">{boundaries.map((d) => <path d={d} />)}</g>
+      <g class="field">
+        {
+          field.map((f) => (
+            <circle
+              cx={f.x.toFixed(1)}
+              cy={f.y.toFixed(1)}
+              r={f.s.toFixed(2)}
+              class:list={{ twinkle: f.twinkle }}
+              style={f.twinkle ? `--twinkle: ${f.delay.toFixed(2)}s` : undefined}
+            />
+          ))
+        }
+      </g>
+      <g class="constellation">
+        {
+          lines.map(({ a, b, series }) => (
+            <line
+              x1={a.x}
+              y1={a.y}
+              x2={b.x}
+              y2={b.y}
+              data-series={series}
+              style={`--length: ${Math.hypot(b.x - a.x, b.y - a.y).toFixed(1)}; --delay: ${inkDelay(b.order) + 300}ms`}
+            />
+          ))
+        }
+      </g>
+      <g class="regions">
+        {
+          regions.map((r) => (
+            <text x={r.x} y={r.y} text-anchor="middle" data-zoom-to={`${r.fx},${r.fy}`} role="button" tabindex="0" aria-label={`放大到${r.label}天区`}>
+              {r.label}
+            </text>
+          ))
+        }
+      </g>
+      <path class="meteor" data-meteor d="M0 0" />
+      <g class="stars">
+        {
+          stars.map((s) => (
+            <a
+              href={s.rec.href}
+              class:list={['star', { favorite: s.rec.favorite }]}
+              aria-label={s.rec.originalTitle}
+              data-key={s.rec.key}
+              data-original-title={s.rec.originalTitle}
+              data-series={s.rec.series}
+              style={`--delay: ${inkDelay(s.order)}ms`}
+            >
+              <circle cx={s.x} cy={s.y} r={s.size + 6} class="hit" style={`--r: ${(s.size + 6).toFixed(2)}`} />
+              {s.rec.favorite && <circle cx={s.x} cy={s.y} r={s.size + 3.5} class="ring" style={`--r: ${(s.size + 3.5).toFixed(2)}`} />}
+              <circle cx={s.x} cy={s.y} r={s.size} class="dot" style={`--r: ${s.size.toFixed(2)}`} />
+              {LEVELS.map((level) => {
+                const l = s.labels[level];
+                return l ? (
+                  <text x={l.x.toFixed(1)} y={l.y.toFixed(1)} text-anchor={l.anchor} class={`level-${level}`} lang={s.rec.lang} aria-hidden="true">
+                    {s.rec.originalTitle}
+                  </text>
+                ) : null;
+              })}
+            </a>
+          ))
+        }
+      </g>
+    </g>
+    <circle cx={C} cy={C} r={DISC} class="rim" />
+    <g class="hours" aria-hidden="true">
+      {
+        hours.map((h) => (
+          <text x={at(h * 15, 494).x} y={at(h * 15, 494).y + 3} text-anchor="middle">
+            {h}h
+          </text>
+        ))
+      }
+    </g>
+    <g class="reticle" data-reticle aria-hidden="true">
+      <circle r="26" />
+      <line x1="-40" x2="-14" />
+      <line x1="14" x2="40" />
+      <line y1="-40" y2="-14" />
+      <line y1="14" y2="40" />
+      <text x="32" y="-30" data-reticle-label></text>
+    </g>
+  </svg>
+  <div class="zoom" role="group" aria-label="缩放星图">
+    <button type="button" data-zoom="in" aria-label="放大">＋</button>
+    <button type="button" data-zoom="out" aria-label="缩小">－</button>
+    <button type="button" data-zoom="reset">全图</button>
+    <span class="hint">放大看名字</span>
+  </div>
+</div>
+
+<style>
+  /* 没放大时手指在星图上滑是滚动页面；放大以后才由脚本接管拖动（它会把 touch-action 改成 none） */
+  .star-chart {
+    position: relative;
+    display: grid;
+    width: 100%;
+    place-items: center;
+  }
+
+  svg {
+    width: min(100%, calc(100svh - 5rem));
+    height: auto;
+    overflow: hidden;
+  }
+
+  .grid circle,
+  .grid line {
+    fill: none;
+    stroke: var(--grid);
+    stroke-width: 0.6;
+    opacity: 0.32;
+  }
+
+  .bounds path {
+    fill: none;
+    stroke: var(--grid);
+    stroke-width: 1;
+    stroke-dasharray: 5 4;
+    opacity: 0.7;
+  }
+
+  .field circle {
+    fill: var(--ink);
+    opacity: 0.55;
+  }
+
+  .constellation line {
+    stroke: var(--ink);
+    stroke-width: 0.9;
+    opacity: 0.55;
+  }
+
+  /* 天区名：一圈纸色描边，星压在上面时也读得出来 */
+  .regions text {
+    font-size: 30px;
+    letter-spacing: 0.6em;
+    fill: var(--grid);
+    stroke: var(--paper);
+    stroke-width: 7px;
+    paint-order: stroke;
+    opacity: 0.55;
+    cursor: zoom-in;
+  }
+
+  .regions text:hover,
+  .regions text:focus-visible {
+    opacity: 0.9;
+    outline: none;
+  }
+
+  .hit {
+    fill: transparent;
+  }
+
+  /* 放大时星点只按倍数的平方根变大（--zs 由脚本给），不会大成一个个黑饼 */
+  .hit,
+  .ring,
+  .dot {
+    r: calc(var(--r) * 1px / var(--zs, 1));
+  }
+
+  .dot {
+    fill: var(--ink);
+  }
+
+  .favorite .dot {
+    fill: var(--red);
+  }
+
+  .ring {
+    fill: none;
+    stroke: var(--red);
+    stroke-width: 1;
+  }
+
+  /* 名字：只显示当前缩放级别算好的那一份；字号跟着缩放变小 */
+  .star text {
+    display: none;
+    font-size: calc(11px / var(--z));
+    fill: var(--ink);
+    opacity: 0.6;
+  }
+
+  svg[data-lod='1'] .level-1,
+  svg[data-lod='2'] .level-2,
+  svg[data-lod='4'] .level-4 {
+    display: inline;
+  }
+
+  .star:focus-visible {
+    outline: none;
+  }
+
+  .star:focus-visible .hit {
+    stroke: var(--red);
+    stroke-width: 1.5;
+  }
+
+  .star:hover text,
+  .star:focus-visible text,
+  .star:global(.lit) text {
+    opacity: 1;
+  }
+
+  .star:hover .dot,
+  .star:focus-visible .dot,
+  .star:global(.lit) .dot {
+    fill: var(--red);
+    stroke: var(--paper);
+    stroke-width: 2;
+    paint-order: stroke;
+  }
+
+  .constellation line:global(.lit) {
+    stroke: var(--red);
+    stroke-width: 1.6;
+    opacity: 1;
+  }
+
+  .drag {
+    fill: transparent;
+    cursor: grab;
+  }
+
+  svg:global(.dragging) .drag {
+    cursor: grabbing;
+  }
+
+  .rim {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.4;
+  }
+
+  .hours text {
+    font-size: 10px;
+    fill: var(--grid);
+  }
+
+  .reticle {
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms;
+  }
+
+  .reticle:global(.on) {
+    opacity: 1;
+  }
+
+  .reticle circle,
+  .reticle line {
+    fill: none;
+    stroke: var(--red);
+    stroke-width: 1.1;
+  }
+
+  .reticle text {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    fill: var(--red);
+  }
+
+  /* 流星：印刷星图上的一道细线，划过去以后淡掉 */
+  .meteor {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.2;
+    stroke-linecap: round;
+    opacity: 0;
+  }
+
+  .meteor:global(.fly) {
+    stroke-dasharray: 220;
+    stroke-dashoffset: 220;
+    animation: meteor 1.6s ease-out forwards;
+  }
+
+  @keyframes meteor {
+    10% {
+      opacity: 0.85;
+    }
+    60% {
+      stroke-dashoffset: 0;
+      opacity: 0.85;
+    }
+    100% {
+      stroke-dashoffset: -220;
+      opacity: 0;
+    }
+  }
+
+  /* 动起来：data-motion 由 star-chart.ts 在没开减少动态效果时加上 */
+  .star-chart:global([data-motion]) .star {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ink 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--delay) both;
+  }
+
+  @keyframes ink {
+    from {
+      opacity: 0;
+      transform: scale(2.4);
+    }
+  }
+
+  .star-chart:global([data-motion]) .constellation line {
+    stroke-dasharray: var(--length);
+    stroke-dashoffset: var(--length);
+    animation: draw 0.9s ease var(--delay) forwards;
+  }
+
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .star-chart:global([data-motion]) .field .twinkle {
+    animation: twinkle 3.6s ease-in-out var(--twinkle) infinite alternate;
+  }
+
+  @keyframes twinkle {
+    to {
+      opacity: 0.12;
+    }
+  }
+
+  .zoom {
+    position: absolute;
+    bottom: 1rem;
+    left: 0;
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .zoom button {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0 0.6rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    color: var(--ink);
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid rgb(15 20 32 / 0.2);
+    touch-action: manipulation;
+  }
+
+  .zoom button:hover {
+    border-color: var(--ink);
+  }
+
+  .hint {
+    display: none;
+    align-self: center;
+    margin-left: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--faint);
+  }
+
+  @media (max-width: 47.99rem) {
+    svg {
+      width: 100%;
+    }
+
+    .zoom {
+      position: static;
+      justify-self: start;
+      margin-top: 0.5rem;
+    }
+
+    /* 手机上 1× 的字太小：只留心头好的名字，放大以后其他名字才出来，旁边提示一句 */
+    svg[data-lod='1'] .star:not(.favorite) .level-1 {
+      display: none;
+    }
+
+    svg[data-lod='1'] ~ .zoom .hint {
+      display: inline;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reticle {
+      transition: none;
+    }
+
+    .meteor {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import { mountStarChart } from './star-chart';
+
+  let stop: (() => void) | undefined;
+  document.addEventListener('astro:page-load', () => {
+    stop?.();
+    const root = document.querySelector<HTMLElement>('[data-star-chart]');
+    stop = root ? mountStarChart(root) : undefined;
+  });
+  document.addEventListener('astro:before-swap', () => {
+    stop?.();
+    stop = undefined;
+  });
+</script>

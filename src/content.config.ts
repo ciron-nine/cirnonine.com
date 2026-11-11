@@ -5,6 +5,7 @@ import { z } from 'astro/zod';
 import { ANIME_SEASONS } from './lib/anime-premiere';
 import { completionDateSchema } from './lib/completion-date';
 import { ORIGINAL_TITLE_LANGS } from './lib/original-title';
+import { ELSEWHERE_PLATFORMS } from './lib/elsewhere-icons';
 
 /** 内容目录。构建产物测试用 CONTENT_ROOT 指向 tests/fixtures/<name>。 */
 const contentRoot = process.env.CONTENT_ROOT ?? 'src/content';
@@ -212,4 +213,22 @@ const songs = defineCollection({
     ),
 });
 
-export const collections = { series, games, 'visual-novels': visualNovels, anime, songs };
+/**
+ * 首页星表底部的外部链接：一个平台一个文件，例如 elsewhere/github.yaml。
+ * url 留空（''）的平台不出现；加一个新平台要先在 lib/elsewhere-icons.ts 里给它一个图标。
+ */
+const elsewhere = defineCollection({
+  loader: glob({ pattern: '*.{yaml,yml}', base: `${contentRoot}/elsewhere` }),
+  schema: z.strictObject({
+    platform: z.enum(ELSEWHERE_PLATFORMS, {
+      error: `外部链接的平台（platform）只能写 ${ELSEWHERE_PLATFORMS.join('、')}；新平台先在 lib/elsewhere-icons.ts 里加图标`,
+    }),
+    url: z.union([z.literal(''), z.url({ protocol: /^https?$/ })], {
+      error: '外部链接的地址（url）要写完整的网址，例如 https://github.com/…；还没有的话留空（\'\'）',
+    }),
+    /** 排在第几个 */
+    order: z.number().int(),
+  }),
+});
+
+export const collections = { series, games, 'visual-novels': visualNovels, anime, songs, elsewhere };

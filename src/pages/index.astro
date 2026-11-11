@@ -1,10 +1,90 @@
 ---
+/**
+ * 首页（#19）：一张印在白纸上的记录星图，右边是星表（小册子）。
+ * 设计在 #19 里从六轮原型中选定（B 记录星图，原型在 prototype/home-r5 分支）。
+ */
 import Shell from '../components/shell/Shell.astro';
+import StarChart from '../components/home/StarChart.astro';
+import StarTable from '../components/home/StarTable.astro';
+import { loadHomeData } from '../lib/home-data';
+import { starChart } from '../lib/star-chart';
+
+const data = await loadHomeData();
+const chart = starChart(data);
 ---
 
-<!-- 占位首页：正式首页要在 A/C/D 三个原型里选定后再做，这里只让站标有个去处 -->
 <Shell title="cirnonine">
-  <main id="main">
-    <h1>cirnonine</h1>
+  <main id="main" class="home" data-home>
+    <h1 class="visually-hidden">cirnonine</h1>
+    <div class="chart">
+      <StarChart chart={chart} />
+    </div>
+    <StarTable data={data} regions={chart.regions} />
   </main>
 </Shell>
+
+<script>
+  import '../components/home/home';
+</script>
+
+<style is:global>
+  /* 首页是一张白纸：外壳的颜色取浅色那一套（只在首页，换页时这段样式跟着换掉） */
+  :root {
+    color-scheme: light;
+  }
+</style>
+
+<style>
+  .home {
+    --paper: #f3f5f8;
+    --ink: #0f1420;
+    --faint: #5d6678;
+    --grid: #2f64b0;
+    --red: #c8323e;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    gap: 2rem;
+    align-items: start;
+    min-height: calc(100svh - 4rem);
+    color: var(--ink);
+  }
+
+  /* 白纸铺满整个视口，盖住外壳原来的底色 */
+  .home::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    content: '';
+    background: var(--paper);
+  }
+
+  .chart {
+    position: sticky;
+    top: 0;
+    display: grid;
+    place-items: center;
+    height: calc(100svh - 4rem);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 47.99rem) {
+    .home {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .chart {
+      position: relative;
+      height: auto;
+      padding: 0.5rem 0 1rem;
+    }
+  }
+</style>

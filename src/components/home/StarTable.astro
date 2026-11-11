@@ -1,0 +1,355 @@
+---
+/**
+ * 首页右边的星表：星图附带的那一页，也就是小册子。
+ * 封面（头像像一张天文底片，可以往回翻）、写在里面（序，我的声音）、收录（图例：四个类别和件数，
+ * 点件数在星图上缩放到那个天区）、最近完成（跨类别最近 5 条）、摘录（随机一句语录，按所在类别的样子）、
+ * 外部链接（src/content/elsewhere/，填了地址的才出现）。
+ */
+import { recordKey, type HomeData } from '../../lib/home-data';
+import { getCollection } from 'astro:content';
+import { ELSEWHERE_ICONS } from '../../lib/elsewhere-icons';
+import type { StarChartData } from '../../lib/star-chart';
+import AvatarPlaceholder from './AvatarPlaceholder.astro';
+import RandomQuote from './RandomQuote.astro';
+import RecordDate from '../voice/RecordDate.astro';
+
+interface Props {
+  data: HomeData;
+  /** 天区：收录里的件数按钮缩放到这里 */
+  regions: StarChartData['regions'];
+}
+const { data, regions } = Astro.props;
+const [hello, ...notes] = data.intro;
+const LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
+/** 填了地址的外部链接，按 order 排 */
+const links = (await getCollection('elsewhere'))
+  .map((e) => e.data)
+  .filter((e) => e.url !== '')
+  .sort((a, b) => a.order - b.order)
+  .map((e) => ({ ...e, icon: ELSEWHERE_ICONS[e.platform] }));
+---
+
+<aside class="star-table" aria-label="星表">
+  <section class="plate" aria-label="头像" data-avatar-history>
+    <div class="plate-image">
+      {
+        data.avatars.map((avatar, i) => (
+          <div class="slide" data-avatar-slide hidden={i > 0}>
+            {avatar.from.record ? (
+              <a href={avatar.from.record.href}>
+                <AvatarPlaceholder avatar={avatar} />
+              </a>
+            ) : (
+              <AvatarPlaceholder avatar={avatar} />
+            )}
+          </div>
+        ))
+      }
+    </div>
+    <p class="steps">
+      <button type="button" data-avatar-step="1" aria-label="往回翻一个头像">←</button>
+      <button type="button" data-avatar-step="-1" aria-label="往后翻一个头像">→</button>
+    </p>
+  </section>
+
+  <section class="preface voice" aria-label="写在里面">
+    <p class="hello">{hello}</p>
+    {notes.map((p) => <p>{p}</p>)}
+  </section>
+
+  <section aria-labelledby="star-table-legend">
+    <h2 id="star-table-legend">收录</h2>
+    <ul class="legend">
+      {
+        regions.map((r) => (
+          <li data-category={r.key}>
+            <a href={r.href}>{r.label}</a>
+            <button type="button" class="count" data-zoom-to={`${r.fx},${r.fy}`} aria-label={`在星图上看${r.label}，${r.count} 条`}>
+              {r.count}
+            </button>
+          </li>
+        ))
+      }
+      <li class="key"><span class="key-star" aria-hidden="true" />心头好</li>
+      <li class="key"><span class="key-line" aria-hidden="true" />同一系列</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="star-table-recent">
+    <h2 id="star-table-recent">最近完成</h2>
+    <table class="recent">
+      <tbody>
+        {
+          data.recent.map((r) => (
+            <tr data-key={recordKey(r)}>
+              <td class="kind">{LABEL[r.category]}</td>
+              <td>
+                <a href={r.href} lang={r.lang}>
+                  {r.originalTitle}
+                </a>
+              </td>
+              <td class="when">
+                <RecordDate date={r.date} />
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </section>
+
+  {
+    data.quotes.length > 0 && (
+      <section aria-labelledby="star-table-quote">
+        <h2 id="star-table-quote">摘录</h2>
+        <RandomQuote quotes={data.quotes} />
+      </section>
+    )
+  }
+
+  {
+    links.length > 0 && (
+      <ul class="elsewhere" aria-label="在别处">
+        {links.map((l) => (
+          <li>
+            <a href={l.url} target="_blank" rel="noopener" aria-label={l.platform} title={l.platform}>
+              <svg viewBox="0 0 24 24" aria-hidden="true" class:list={{ stroke: l.icon.stroke }}>
+                <path d={l.icon.d} />
+              </svg>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</aside>
+
+<style>
+  .star-table {
+    display: grid;
+    gap: 2.75rem;
+    align-content: start;
+    padding: 2rem 1.75rem 3rem;
+    margin-bottom: 3rem;
+    font-size: 0.9375rem;
+    background: #fff;
+    box-shadow:
+      0 1px 2px rgb(15 20 32 / 0.08),
+      0 18px 40px -18px rgb(15 20 32 / 0.3);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a:hover,
+  a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  h2 {
+    margin: 0 0 0.75rem;
+    padding-bottom: 0.4rem;
+    font-size: 0.9375rem;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  /* 头像像一张天文底片：黑框里的灰 */
+  .plate {
+    display: flex;
+    gap: 0.75rem;
+    align-items: end;
+  }
+
+  .plate-image {
+    position: relative;
+    width: 8.5rem;
+    aspect-ratio: 1;
+    border: 6px solid var(--ink);
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+  }
+
+  .slide[hidden] {
+    display: none;
+  }
+
+  .slide a {
+    display: block;
+    height: 100%;
+  }
+
+  .plate :global(.avatar) {
+    width: 100%;
+    height: 100%;
+    filter: grayscale(1) contrast(1.2);
+  }
+
+  .steps {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0;
+  }
+
+  .steps button {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    font: inherit;
+    color: var(--ink);
+    cursor: pointer;
+    background: none;
+    border: 1px solid rgb(15 20 32 / 0.25);
+    touch-action: manipulation;
+  }
+
+  .steps button:hover:not(:disabled) {
+    border-color: var(--ink);
+  }
+
+  .steps button:disabled {
+    cursor: default;
+    opacity: 0.3;
+  }
+
+  .preface {
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+
+  .preface p {
+    margin: 0 0 0.8em;
+  }
+
+  .hello {
+    font-size: 1.5rem;
+    line-height: 1.35;
+  }
+
+  .legend {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .legend li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .legend li > a {
+    font-size: 1.125rem;
+  }
+
+  .count {
+    min-width: 2.25rem;
+    min-height: 2rem;
+    padding: 0 0.5rem;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    color: var(--faint);
+    cursor: zoom-in;
+    background: none;
+    border: 1px solid transparent;
+    touch-action: manipulation;
+  }
+
+  .count:hover {
+    border-color: rgb(15 20 32 / 0.2);
+  }
+
+  .key {
+    justify-content: flex-start !important;
+    gap: 0.6rem;
+    font-size: 0.8125rem;
+    color: var(--faint);
+  }
+
+  .key-star {
+    width: 9px;
+    height: 9px;
+    background: var(--red);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 3px var(--red);
+  }
+
+  .key-line {
+    width: 1.5rem;
+    border-top: 1px solid var(--ink);
+  }
+
+  .recent {
+    width: 100%;
+    font-size: 0.875rem;
+    border-collapse: collapse;
+  }
+
+  .recent td {
+    padding: 0.45rem 0.5rem 0.45rem 0;
+    vertical-align: baseline;
+    border-bottom: 1px solid rgb(15 20 32 / 0.12);
+  }
+
+  .recent tr:global(.lit) {
+    background: rgb(200 50 62 / 0.08);
+  }
+
+  .kind {
+    color: var(--faint);
+    white-space: nowrap;
+  }
+
+  .when {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .when :global(.voice-date) {
+    margin: 0;
+  }
+
+  .elsewhere {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .elsewhere a {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--ink);
+  }
+
+  .elsewhere svg {
+    width: 1.375rem;
+    height: 1.375rem;
+    fill: currentColor;
+  }
+
+  .elsewhere svg.stroke {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (max-width: 47.99rem) {
+    .star-table {
+      padding: 1.5rem 1.25rem 2.5rem;
+    }
+  }
+</style>

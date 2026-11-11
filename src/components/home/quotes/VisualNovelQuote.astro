@@ -1,0 +1,75 @@
+---
+/** 首页摘录里视觉小说的语录，像游戏画面下方的文本框，左上角压一块名牌 */
+import type { HomeQuote } from '../../../lib/home-data';
+
+interface Props {
+  quote: HomeQuote;
+}
+const { quote } = Astro.props;
+---
+
+<figure class="vn-quote">
+  {quote.speaker && <figcaption class="nameplate">{quote.speaker}</figcaption>}
+  <blockquote>
+    <p class="original" lang={quote.lang}>「{quote.original}」</p>
+    {quote.translation && <p class="translation voice">{quote.translation}</p>}
+  </blockquote>
+  <p class="from">
+    <a href={quote.record.href} lang={quote.record.lang}>{quote.record.originalTitle}</a>
+    {quote.source && <span> · {quote.source}</span>}
+  </p>
+</figure>
+
+<style>
+  .vn-quote {
+    position: relative;
+    max-width: 38rem;
+    margin: 1.25rem 0 0;
+    padding: 1.75rem 1.5rem 1rem;
+    color: #fff;
+    background: linear-gradient(to bottom, rgb(30 34 52 / 0.82), rgb(14 16 28 / 0.92));
+    border-radius: 0.5rem;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25);
+  }
+
+  .nameplate {
+    position: absolute;
+    top: -1rem;
+    left: 1rem;
+    padding: 0.25rem 1.25rem;
+    font-size: 0.9375rem;
+    letter-spacing: 0.1em;
+    color: #1d2033;
+    background: #f4f1ea;
+    border-radius: 0.25rem;
+  }
+
+  blockquote {
+    margin: 0;
+  }
+
+  .original {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.8;
+    text-indent: -0.5em;
+  }
+
+  .translation {
+    margin: 0.25rem 0 0;
+    font-size: 0.9375rem;
+    color: rgb(255 255 255 / 0.7);
+  }
+
+  .from {
+    margin: 0.75rem 0 0;
+    font-size: 0.75rem;
+    color: rgb(255 255 255 / 0.6);
+    text-align: right;
+  }
+
+  .from a {
+    color: inherit;
+  }
+
+</style>

@@ -35,11 +35,22 @@ export function buildSiteContent(): BuildResult {
   return runAstroBuild('src/content', 'tests/.output/site-content');
 }
 
+/**
+ * 去掉 vitest 往 process.env 里塞的 NODE_ENV=test、DEV=1、MODE=test 等变量，
+ * 否则子进程里的构建会把 import.meta.env.DEV 当成 true，和 `pnpm build` 不一样。
+ */
+function productionEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of ['NODE_ENV', 'DEV', 'PROD', 'MODE', 'SSR', 'BASE_URL', 'TEST']) delete env[key];
+  for (const key of Object.keys(env)) if (key.startsWith('VITEST')) delete env[key];
+  return env;
+}
+
 /** 以 contentRoot 为内容目录（环境变量 CONTENT_ROOT）在子进程里跑 astro build，输出到 outDir。 */
 function runAstroBuild(contentRoot: string, outDir: string): BuildResult {
   const result = spawnSync('pnpm', ['exec', 'astro', 'build', '--force', '--outDir', outDir], {
     cwd: root,
-    env: { ...process.env, CONTENT_ROOT: contentRoot, NO_COLOR: '1', FORCE_COLOR: '0' },
+    env: { ...productionEnv(), CONTENT_ROOT: contentRoot, NO_COLOR: '1', FORCE_COLOR: '0' },
     encoding: 'utf8',
   });
   const pageFile = (route: string) => `${root}${outDir}/${route.replace(/\/?$/, '/')}index.html`;
