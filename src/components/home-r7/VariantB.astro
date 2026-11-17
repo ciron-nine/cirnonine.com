@@ -1,0 +1,329 @@
+---
+/**
+ * PROTOTYPE（首页第七轮）B 记忆的误差。上面是一张深色的天文玻璃底片（b-plate.ts），放在浅色的纸上；
+ * 下面是观测记录：自我介绍、最近完成、图例。红色是油性铅笔的标记：圈心头好、写批注，和「我的声音」里的铅笔圈同源。
+ */
+import type { HomeData } from '../../lib/home-data';
+import RecordDate from '../voice/RecordDate.astro';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+const [hello, ...notes] = data.intro;
+const LABEL = Object.fromEntries(data.categories.map((c) => [c.key, c.label]));
+---
+
+<div class="b" data-b>
+  <figure class="plate-wrap">
+    <svg class="plate" data-plate role="group" aria-label="记录底片：横轴是时间，四条横带是四个类别；记不准的日子画成拉长的椭圆"></svg>
+    <figcaption class="caps">一颗星是一条记录。点越锐利，那天记得越清楚。</figcaption>
+  </figure>
+
+  <section class="log">
+    <div class="log-intro voice">
+      <p class="hello">{hello}</p>
+      {notes.map((p) => <p>{p}</p>)}
+    </div>
+    <div>
+      <h2 class="caps">最近的观测</h2>
+      <ol class="recent">
+        {
+          data.recent.map((r, i) => (
+            <li>
+              <span class="no">{String(i + 1).padStart(2, '0')}</span>
+              <a href={r.href} lang={r.lang}>
+                {r.originalTitle}
+              </a>
+              <span class="kind">{LABEL[r.category]}</span>
+              <RecordDate date={r.date} />
+            </li>
+          ))
+        }
+      </ol>
+      <h2 class="caps">记得多准</h2>
+      <ul class="key">
+        <li><svg viewBox="-20 -10 40 20" aria-hidden="true"><circle r="3" /></svg>记得是哪一天</li>
+        <li><svg viewBox="-20 -10 40 20" aria-hidden="true"><ellipse rx="8" ry="5" /><circle r="3" /></svg>只记得是哪个月</li>
+        <li><svg viewBox="-20 -10 40 20" aria-hidden="true"><ellipse rx="18" ry="7" /><circle r="3" /></svg>只记得是哪一年</li>
+        <li><svg viewBox="-20 -10 40 20" aria-hidden="true"><circle r="8" class="haze" /><circle r="3" /></svg>记不清了</li>
+      </ul>
+      <ul class="cats">
+        {data.categories.map((c) => <li><a class="caps" href={c.href}>{c.label}</a> <span>{c.records.length}</span></li>)}
+      </ul>
+    </div>
+  </section>
+  <p class="sample-note" data-sample-note hidden>示意日期</p>
+  <p hidden class="voice">0123456789年月日很久以前记得是哪一天只记得是哪个月只记得是哪一年记不清了　</p>
+</div>
+
+<style>
+  .b {
+    padding-bottom: 4rem;
+  }
+
+  .plate-wrap {
+    margin: 0 calc(-1 * clamp(1rem, 4vw, 2.5rem));
+    padding: 1rem clamp(0.5rem, 2vw, 1.5rem) 0;
+  }
+
+  .plate {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: calc(100svh - 7rem);
+  }
+
+  .plate-wrap figcaption {
+    margin: 0.75rem clamp(0.5rem, 3vw, 2rem) 0;
+    text-align: right;
+  }
+
+  /* 深色的玻璃负片：星是浅的，标记是红铅笔 */
+  .plate :global(.glass) {
+    fill: #101318;
+  }
+
+  .plate :global(.frame) {
+    fill: none;
+    stroke: rgb(238 240 242 / 0.25);
+  }
+
+  .plate :global(.reg) {
+    stroke: rgb(238 240 242 / 0.6);
+  }
+
+  .plate :global(.year-line) {
+    stroke: rgb(238 240 242 / 0.1);
+  }
+
+  .plate :global(.month-tick) {
+    stroke: rgb(238 240 242 / 0.3);
+  }
+
+  .plate :global(.year),
+  .plate :global(.caption) {
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.15em;
+    fill: rgb(238 240 242 / 0.6);
+  }
+
+  .plate :global(.band-line) {
+    stroke: rgb(238 240 242 / 0.12);
+    stroke-dasharray: 2 6;
+  }
+
+  /* 类别竖着写在底片左边，像贴在片边的标签 */
+  .plate :global(.band) {
+    font-size: 15px;
+    letter-spacing: 0.4em;
+    writing-mode: vertical-rl;
+    text-anchor: middle;
+    fill: rgb(238 240 242 / 0.55);
+  }
+
+  .plate :global(.fog) {
+    fill: rgb(238 240 242 / 0.06);
+    stroke: rgb(238 240 242 / 0.35);
+    stroke-dasharray: 3 5;
+  }
+
+  .plate :global(.fog-label) {
+    font-size: 16px;
+    letter-spacing: 0.6em;
+    text-anchor: middle;
+    fill: rgb(238 240 242 / 0.6);
+  }
+
+  .plate :global(.glyph circle),
+  .plate :global(.glyph path) {
+    fill: #eef0f2;
+  }
+
+  .plate :global(.glyph .hollow) {
+    fill: none;
+    stroke: #eef0f2;
+  }
+
+  .plate :global(.err) {
+    fill: rgb(238 240 242 / 0.06);
+    stroke: rgb(238 240 242 / 0.45);
+    stroke-width: 0.8;
+  }
+
+  .plate :global(.haze) {
+    fill: rgb(238 240 242 / 0.12);
+  }
+
+  .plate :global(.series) {
+    stroke: rgb(238 240 242 / 0.35);
+    stroke-width: 0.8;
+  }
+
+  .plate :global(.pencil) {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    opacity: 0.9;
+  }
+
+  .plate :global(.star:hover .glyph circle),
+  .plate :global(.star:hover .glyph path),
+  .plate :global(.star:focus-visible .glyph circle) {
+    fill: var(--accent);
+  }
+
+  .plate :global(.star:hover .err) {
+    stroke: var(--accent);
+  }
+
+  .plate :global(.note) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .plate :global(.note.on) {
+    opacity: 1;
+  }
+
+  .plate :global(.note line) {
+    stroke: var(--accent);
+    stroke-width: 1.2;
+  }
+
+  .plate :global(.note-title) {
+    font-size: 22px;
+    fill: #eef0f2;
+  }
+
+  .plate :global(.note-sub) {
+    font-size: 16px;
+    fill: var(--accent);
+  }
+
+  /* 观测记录 */
+  .log {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: clamp(2rem, 6vw, 6rem);
+    max-width: 68rem;
+    margin: 12vh auto 0;
+  }
+
+  .log-intro {
+    font-size: var(--t0);
+    line-height: 2;
+  }
+
+  .log-intro p {
+    margin: 0 0 1em;
+  }
+
+  .hello {
+    font-size: var(--t3);
+    line-height: 1.25;
+  }
+
+  .log h2 {
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    font-weight: 400;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .recent {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0;
+    margin: 0 0 3rem;
+    list-style: none;
+  }
+
+  .recent li {
+    display: grid;
+    grid-template-columns: 2.25rem 1fr auto;
+    gap: 0 0.75rem;
+    align-items: baseline;
+  }
+
+  .no {
+    font-size: var(--micro);
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+  }
+
+  .recent a {
+    font-size: var(--t1);
+  }
+
+  .kind {
+    font-size: var(--micro);
+    color: var(--dim);
+  }
+
+  .recent :global(.voice-date) {
+    grid-column: 2 / -1;
+    margin: 0;
+  }
+
+  .key,
+  .cats {
+    display: grid;
+    gap: 0.4rem;
+    padding: 0;
+    margin: 0 0 2rem;
+    list-style: none;
+    font-size: var(--micro);
+    color: var(--dim);
+  }
+
+  .key li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .key svg {
+    width: 2.5rem;
+    height: 1.25rem;
+  }
+
+  .key ellipse {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 0.8;
+  }
+
+  .key circle {
+    fill: var(--ink);
+  }
+
+  .key .haze {
+    fill: var(--hair);
+  }
+
+  .cats li {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  @media (max-width: 47.99rem) {
+    /* 手机上底片横着放不下：可以左右拖 */
+    .plate-wrap {
+      overflow-x: auto;
+    }
+
+    .plate {
+      width: 900px;
+      max-height: none;
+    }
+
+    .log {
+      grid-template-columns: minmax(0, 1fr);
+      margin-top: 4rem;
+    }
+  }
+</style>

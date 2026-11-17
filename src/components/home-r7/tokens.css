@@ -1,0 +1,89 @@
+/*
+ * PROTOTYPE（首页第七轮）：三版共用的设计语言（从 rothmary 学的是方法，不是那几个值）：
+ * - 三色：纸、墨、一个强调色（朱）。灰全部由纸和墨混出来，不写死。强调色只标「当前、正在看、心头好」
+ * - 字号：一个基数按同一个比例往上（4:3，一次跳一个纯四度那么大，够分层级又不吵）
+ * - 发丝线、点线；不用卡片、圆角、阴影、渐变
+ * - 拉丁数字和中文同场时，数字用等宽数字，中文照常
+ */
+.r7 {
+  --paper: #eef0f2;
+  --ink: #14161c;
+  --accent: #c23a2b;
+  --dim: color-mix(in srgb, var(--ink) 58%, var(--paper));
+  --faint: color-mix(in srgb, var(--ink) 34%, var(--paper));
+  --hair: color-mix(in srgb, var(--ink) 18%, var(--paper));
+  --t0: 0.9375rem;
+  --t1: calc(var(--t0) * 4 / 3);
+  --t2: calc(var(--t1) * 4 / 3);
+  --t3: calc(var(--t2) * 4 / 3);
+  --t4: calc(var(--t3) * 4 / 3);
+  --t5: calc(var(--t4) * 4 / 3);
+  --micro: 0.6875rem;
+
+  color: var(--ink);
+}
+
+.r7::before {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  content: '';
+  background: var(--paper);
+}
+
+/* 微缩标签：字距张开是 hover 状态 */
+.r7 .caps {
+  font-size: var(--micro);
+  letter-spacing: 0.3em;
+  color: var(--dim);
+  transition: letter-spacing 0.35s;
+}
+
+.r7 a.caps:hover,
+.r7 a.caps:focus-visible {
+  letter-spacing: 0.4em;
+  color: var(--ink);
+}
+
+.r7 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.r7 .glyph circle,
+.r7 .glyph path {
+  fill: var(--ink);
+}
+
+.r7 .glyph .hollow {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.1;
+}
+
+.r7 .fav .glyph circle,
+.r7 .fav .glyph path {
+  fill: var(--accent);
+}
+
+.r7 .fav .glyph .hollow {
+  fill: none;
+  stroke: var(--accent);
+}
+
+.r7 .sample-note {
+  position: fixed;
+  right: 1rem;
+  bottom: 4.25rem;
+  z-index: 5;
+  margin: 0;
+  font-size: var(--micro);
+  letter-spacing: 0.15em;
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .r7 .caps {
+    transition: none;
+  }
+}

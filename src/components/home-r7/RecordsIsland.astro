@@ -1,0 +1,76 @@
+---
+/**
+ * PROTOTYPE（首页第七轮）：三版原型共用的数据。
+ * - 数据岛：全部记录的 JSON（原名、类别、链接、完成日期、心头好、系列），三版的画面都由脚本按它画出来
+ * - 记录清单：全部原名的 HTML 列表，给读屏和键盘用（画面只是画面），也让字体子集收到这些原名的字
+ * ?sample=1 时脚本给记录编示意的日期（真实内容里几乎都是「很久以前」），页面上会标出来。
+ */
+import type { HomeData } from '../../lib/home-data';
+import { recordKey } from '../../lib/home-data';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+const records = data.categories.flatMap((c) =>
+  c.records.map((r) => ({
+    key: recordKey(r),
+    title: r.originalTitle,
+    lang: r.lang,
+    href: r.href,
+    category: c.key,
+    categoryLabel: c.label,
+    favorite: r.favorite,
+    series: r.series,
+    date: r.date,
+  })),
+);
+---
+
+<script type="application/json" id="r7-records" set:html={JSON.stringify(records)} />
+<nav class="r7-index" aria-label="全部记录">
+  {
+    data.categories.map((c) => (
+      <section>
+        <h2>
+          <a href={c.href}>{c.label}</a>
+        </h2>
+        <ul>
+          {c.records.map((r) => (
+            <li>
+              <a href={r.href} lang={r.lang}>
+                {r.originalTitle}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</nav>
+
+<style>
+  /* 视觉上藏起来，读屏和键盘能用（获得焦点时浮出来） */
+  .r7-index {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .r7-index:focus-within {
+    position: fixed;
+    inset: 4rem auto auto 1rem;
+    z-index: 50;
+    width: auto;
+    max-width: 20rem;
+    max-height: 70vh;
+    padding: 1rem;
+    overflow: auto;
+    clip-path: none;
+    color: #14161c;
+    background: #fff;
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.2);
+  }
+</style>
