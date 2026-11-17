@@ -179,15 +179,12 @@ export function mixedTemperature(Ts: number[]): number {
 }
 
 /**
- * 在一块画布上画光谱。给一个温度，是那颗星的光谱；给一组温度，是它们一样亮、加在一起的光谱
- * （亮度相加，吸收线按各自在这个波长上的亮度加权）。
+ * 一条光谱的颜色（n 个采样，蓝端到红端）。给一个温度，是那颗星的；给一组温度，是它们一样亮、加在一起的
+ * （亮度相加，吸收线按各自在这个波长上的亮度加权）。contrast 是亮度曲线的指数：1 是照普朗克定律原样，
+ * 越小越平（冷星的蓝端也看得见）。
  */
-export function drawSpectrum(canvas: HTMLCanvasElement, T: number | number[]) {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+export function spectrumRow(T: number | number[], n: number, contrast = 0.45): [number, number, number][] {
   const Ts = Array.isArray(T) ? T : [T];
-  if (!Ts.length) return;
-  const { width, height } = canvas;
   const [a, b] = VISIBLE;
   const peaks = Ts.map((t) => {
     let p = 0;
@@ -196,8 +193,8 @@ export function drawSpectrum(canvas: HTMLCanvasElement, T: number | number[]) {
   });
   const classes = Ts.map((t) => classify(t).cls);
   const raw: number[] = [];
-  for (let x = 0; x < width; x++) {
-    const nm = a + ((b - a) * x) / (width - 1);
+  for (let x = 0; x < n; x++) {
+    const nm = a + ((b - a) * x) / Math.max(n - 1, 1);
     let sum = 0;
     let absorbed = 0;
     Ts.forEach((t, i) => {
@@ -205,20 +202,30 @@ export function drawSpectrum(canvas: HTMLCanvasElement, T: number | number[]) {
       sum += I;
       absorbed += I * absorption(nm, classes[i]);
     });
-    raw.push(sum > 0 ? Math.pow(sum / Ts.length, 0.45) * (absorbed / sum) : 0);
+    raw.push(sum > 0 ? Math.pow(sum / Ts.length, contrast) * (absorbed / sum) : 0);
   }
   const top = Math.max(...raw, 1e-6);
+  return raw.map((v, x) => {
+    const nm = a + ((b - a) * x) / Math.max(n - 1, 1);
+    const I = v / top;
+    const [r, g, bl] = wavelengthRgb(nm);
+    return [gam(lin(r) * I), gam(lin(g) * I), gam(lin(bl) * I)].map((c) => Math.round(c * 255)) as [number, number, number];
+  });
+}
+
+/** 在一块画布上画满一条光谱 */
+export function drawSpectrum(canvas: HTMLCanvasElement, T: number | number[]) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const { width, height } = canvas;
+  const row = spectrumRow(T, width);
   const img = ctx.createImageData(width, height);
   for (let x = 0; x < width; x++) {
-    const nm = a + ((b - a) * x) / (width - 1);
-    const I = raw[x] / top;
-    const [r, g, bl] = wavelengthRgb(nm);
-    const px = [gam(lin(r) * I), gam(lin(g) * I), gam(lin(bl) * I)].map((c) => Math.round(c * 255));
     for (let y = 0; y < height; y++) {
       const i = (y * width + x) * 4;
-      img.data[i] = px[0];
-      img.data[i + 1] = px[1];
-      img.data[i + 2] = px[2];
+      img.data[i] = row[x][0];
+      img.data[i + 1] = row[x][1];
+      img.data[i + 2] = row[x][2];
       img.data[i + 3] = 255;
     }
   }

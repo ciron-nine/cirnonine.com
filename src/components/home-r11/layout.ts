@@ -15,8 +15,8 @@ export const LABEL_SIZE = 13;
 export const STAR_R = 4.2;
 export const CATEGORIES = ['games', 'visual-novels', 'anime', 'songs'] as const;
 
-const R_HOT = 52;
-const R_COOL = 466;
+const R_HOT = 150;
+const R_COOL = 470;
 /**
  * 温度 → 半径：七型各占一圈一样宽的带子（像音阶里的一级一级），带子里面按对数温度排。
  * 这样每一型都看得清，不会因为 O 型的温度跨度在对数上很窄就挤成一团。
