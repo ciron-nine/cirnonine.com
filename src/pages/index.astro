@@ -1,12 +1,12 @@
 ---
 /**
- * PROTOTYPE（首页第十轮）：main 上的记录星图，整页按一个概念重做——视星等（喜帕恰斯的六等、普森的 2.512）。
- * A 视星等；「现行」是 main 上现在的首页，放在一起对比。
- * ?variant=A|0 切换，开发环境底部有切换条；?sample=1 用示意日期（真实内容里几乎都是「很久以前」）。
+ * PROTOTYPE（首页第十一轮）：main 上的记录星图，整页按一个概念重做——哈佛光谱分类（O B A F G K M）。
+ * A 光谱型；「现行」是 main 上现在的首页，放在一起对比。
+ * ?variant=A|0 切换，开发环境底部有切换条；?sample=1 用示意的封面颜色（现在的封面都是占位图）。
  */
 import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
-import RecordsIsland from '../components/home-r10/RecordsIsland.astro';
-import Atlas from '../components/home-r10/Atlas.astro';
+import RecordsIsland from '../components/home-r11/RecordsIsland.astro';
+import Spectra from '../components/home-r11/Spectra.astro';
 import Shell from '../components/shell/Shell.astro';
 import StarChart from '../components/home/StarChart.astro';
 import StarTable from '../components/home/StarTable.astro';
@@ -21,8 +21,8 @@ const chart = starChart(data);
   <main id="main" data-prototype-variants>
     <h1 class="visually-hidden">cirnonine</h1>
     <RecordsIsland data={data} />
-    <div data-variant="A" data-variant-name="视星等">
-      <Atlas data={data} />
+    <div data-variant="A" data-variant-name="光谱型">
+      <Spectra data={data} />
     </div>
     <div data-variant="0" data-variant-name="现行（main 上的首页）" hidden>
       <div class="home" data-home>
@@ -38,7 +38,7 @@ const chart = starChart(data);
 
 <script>
   import '../components/home/home';
-  import '../components/home-r10/r10';
+  import '../components/home-r11/r11';
 </script>
 
 <style is:global>
@@ -51,6 +51,11 @@ const chart = starChart(data);
   /* 首页是一张白纸：外壳的颜色取浅色那一套（只在首页，换页时这段样式跟着换掉） */
   :root {
     color-scheme: light;
+  }
+
+  /* PROTOTYPE：光谱型那一版是夜空，外壳跟着用深色那一套 */
+  :root:has([data-variant='A']:not([hidden])) {
+    color-scheme: dark;
   }
 </style>
 

@@ -1,19 +1,36 @@
 /**
- * PROTOTYPE（首页第十轮）：星和名字的位置。位置沿用 main 上的记录星图（lib/star-chart.ts）：
- * 一个类别一个天区；有日期的越新越靠中心，很久以前在最外一圈；天区里的角度按黄金角散开。
- * 变的是两件事，都出自星等：
- * - 星的半径：r = 7 × 10^(−0.1 × (m − 1))，暗一等小 1.259 倍（和字号同一个比）
- * - 名字：像真的星图一样只给看得见的星标名。三个缩放级别对应三个极限星等（6.0 / 7.5 / 9.0），
- *   比极限暗的星这一级不标名；能标的按从亮到暗的顺序挑不重叠的位置。放到最大时每颗都标。
+ * PROTOTYPE（首页第十一轮）：星和名字的位置。
+ * - 方向：一个类别一个天区（90° 的扇形），同一系列排在一起
+ * - 离中心多远：温度。最热的 O 型在里面，最冷的 M 型在外缘，七型各占一圈；各型的分界画成圆——星图的网格就是光谱序列
+ * 所有的星一样大：这张图上没有谁比谁亮。
+ * 名字分三个缩放级别（1×、2×、4×）各算一次，每颗星在周围八个方向里挑第一个不压住别的名字和星的位置；放到最大时每颗都标。
  */
 import { CENTER as C, RADIUS as DISC } from '../../lib/star-chart-frame';
-import { hash, limitingMagnitude, when, type Entry } from './data';
+import { hash, type Entry } from './data';
+import { CLASSES } from './spectrum';
 
 export const LEVELS = [1, 2, 4] as const;
 export type Level = (typeof LEVELS)[number];
 export const LABEL_SIZE = 13;
-const GOLDEN = 0.6180339887;
+export const STAR_R = 4.2;
 export const CATEGORIES = ['games', 'visual-novels', 'anime', 'songs'] as const;
+
+const R_HOT = 52;
+const R_COOL = 466;
+/**
+ * 温度 → 半径：七型各占一圈一样宽的带子（像音阶里的一级一级），带子里面按对数温度排。
+ * 这样每一型都看得清，不会因为 O 型的温度跨度在对数上很窄就挤成一团。
+ */
+export function radiusOf(T: number, jitter = 0.5) {
+  const i = Math.max(CLASSES.findIndex((c) => T >= c.cool), 0);
+  const c = CLASSES[i] ?? CLASSES[CLASSES.length - 1];
+  const t = Math.min(Math.max(T, c.cool), c.hot);
+  const f = Math.log(c.hot / t) / Math.log(c.hot / c.cool);
+  const band = (R_COOL - R_HOT) / CLASSES.length;
+  // 同一个温度的星不要叠在同一圈上：在带子里错开一点
+  return R_HOT + band * (i + 0.08 + 0.84 * Math.min(Math.max(f * 0.8 + jitter * 0.2, 0), 1));
+}
+export const bandEdge = (i: number) => R_HOT + ((R_COOL - R_HOT) / CLASSES.length) * i;
 
 export interface Label {
   x: number;
@@ -24,11 +41,8 @@ export interface Star {
   e: Entry;
   x: number;
   y: number;
-  r: number;
   labels: Partial<Record<Level, Label>>;
 }
-
-export const radiusOf = (mag: number) => 7 * Math.pow(10, -0.1 * (mag - 1));
 
 function textWidth(text: string): number {
   let w = 0;
@@ -43,42 +57,37 @@ function textWidth(text: string): number {
 }
 
 export function layout(entries: Entry[]) {
-  const dated = entries.filter((e) => e.date.precision !== 'long-ago').sort((a, b) => when(b.date) - when(a.date));
-  const rank = new Map(dated.map((e, i) => [e, dated.length > 1 ? i / (dated.length - 1) : 0]));
-
   const stars: Star[] = [];
   CATEGORIES.forEach((cat, k) => {
-    const theta0 = ((k * 90 + 6) * Math.PI) / 180;
-    const span = (78 * Math.PI) / 180;
-    const mine = entries.filter((e) => e.category === cat);
-    const recent = mine.filter((e) => e.date.precision !== 'long-ago').sort((a, b) => rank.get(a)! - rank.get(b)!);
-    const old = mine.filter((e) => e.date.precision === 'long-ago').sort((a, b) => hash(a.key) - hash(b.key));
-    const place = (e: Entry, radius: number, j: number) => {
-      const ang = theta0 + span * (((j + 0.5) * GOLDEN + hash(cat) * 0.3) % 1);
-      stars.push({ e, x: C + Math.cos(ang) * radius, y: C + Math.sin(ang) * radius, r: radiusOf(e.mag), labels: {} });
-    };
-    recent.forEach((e, j) => place(e, 60 + 270 * Math.sqrt(rank.get(e)!), j));
-    old.forEach((e, j) => place(e, Math.sqrt(345 ** 2 + (468 ** 2 - 345 ** 2) * ((j + 0.5) / old.length)), j));
+    const a0 = k * 90 + 7;
+    const span = 76;
+    const mine = entries
+      .filter((e) => e.category === cat)
+      .sort((a, b) => hash(a.series ?? a.key) - hash(b.series ?? b.key) || hash(a.key) - hash(b.key));
+    const slot = span / Math.max(mine.length, 1);
+    mine.forEach((e, j) => {
+      const deg = a0 + slot * (j + 0.5 + (hash(e.key + 'j') - 0.5) * 0.4);
+      const ang = (deg * Math.PI) / 180;
+      const r = radiusOf(e.T, hash(e.key + 'r'));
+      stars.push({ e, x: C + Math.cos(ang) * r, y: C + Math.sin(ang) * r, labels: {} });
+    });
   });
 
-  // 名字：从亮到暗
-  const byMag = [...stars].sort((a, b) => a.e.mag - b.e.mag);
+  const order = [...stars].sort((a, b) => hash(a.e.key + 'o') - hash(b.e.key + 'o'));
   type Box = [number, number, number, number];
   const overlaps = (a: Box, b: Box) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
   for (const level of LEVELS) {
-    const limit = limitingMagnitude(level);
     const fs = LABEL_SIZE / level;
     const dots: Box[] = stars.map((s) => {
-      const r = s.r + 1.5;
+      const r = STAR_R + 1.5;
       return [s.x - r, s.y - r, s.x + r, s.y + r];
     });
     const placed: Box[] = [];
-    for (const s of byMag) {
-      if (s.e.mag > limit && level < 4) continue;
+    for (const s of order) {
       const w = textWidth(s.e.title) * fs;
       const h = fs * 1.2;
       const pad = fs * 0.3;
-      const d = s.r + 3.5 / level;
+      const d = STAR_R + 4 / level;
       const candidates: [Label, Box][] = [
         [{ x: s.x + d, y: s.y + fs * 0.35, anchor: 'start' }, [s.x + d, s.y - h / 2, s.x + d + w, s.y + h / 2]],
         [{ x: s.x - d, y: s.y + fs * 0.35, anchor: 'end' }, [s.x - d - w, s.y - h / 2, s.x - d, s.y + h / 2]],
@@ -104,37 +113,26 @@ export function layout(entries: Entry[]) {
         s.labels[level] = label;
         break;
       }
-      // 放到最大时每颗都标；一、二等星在哪一级都要有名字（亮星总是标名的）
-      if (!s.labels[level] && (level === 4 || s.e.mag < 2.5)) s.labels[level] = candidates[0][0];
+      if (level === 4 && !s.labels[4]) s.labels[4] = candidates[0][0];
     }
   }
 
-  // 同一系列连成星座（按完成先后）
+  // 同一系列连起来（像星座连线），按方向排
   const lines: [Star, Star][] = [];
   const bySeries = new Map<string, Star[]>();
   for (const s of stars) if (s.e.series) bySeries.set(s.e.series, [...(bySeries.get(s.e.series) ?? []), s]);
   for (const group of bySeries.values()) {
-    group.sort((a, b) => when(a.e.date) - when(b.e.date) || hash(a.e.key) - hash(b.e.key));
+    group.sort((a, b) => Math.atan2(a.y - C, a.x - C) - Math.atan2(b.y - C, b.x - C));
     for (let i = 1; i < group.length; i++) lines.push([group[i - 1], group[i]]);
   }
 
-  // 阶梯状的天区边界（沿赤经、赤纬走的折线，像 IAU 的星座边界）
-  const boundary = (deg: number) => {
-    const pts: string[] = [];
-    let a = deg;
-    const p = (ang: number, r: number) => `${(C + Math.cos((ang * Math.PI) / 180) * r).toFixed(1)} ${(C + Math.sin((ang * Math.PI) / 180) * r).toFixed(1)}`;
-    for (let rr = 60; rr <= 480; rr += 60) {
-      const jog = (hash(`${deg}/${rr}`) - 0.5) * 10;
-      pts.push(p(a, rr));
-      a = deg + jog;
-      pts.push(p(a, rr));
-    }
-    return `M${pts.join(' L')}`;
-  };
+  // 天区：四条径向的分界线，名字写在外缘
   const regions = CATEGORIES.map((cat, k) => {
     const ang = ((k * 90 + 45) * Math.PI) / 180;
-    return { cat, x: C + Math.cos(ang) * 215, y: C + Math.sin(ang) * 215, fx: C + Math.cos(ang) * 290, fy: C + Math.sin(ang) * 290 };
+    return { cat, ang, fx: C + Math.cos(ang) * 290, fy: C + Math.sin(ang) * 290 };
   });
+  // 各型的分界圆
+  const rings = CLASSES.slice(1).map((c, i) => ({ cls: c.cls, r: bandEdge(i + 1) }));
 
-  return { stars, lines, boundaries: [0, 90, 180, 270].map(boundary), regions };
+  return { stars, lines, regions, rings };
 }

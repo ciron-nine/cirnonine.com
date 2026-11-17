@@ -1,11 +1,11 @@
 /**
- * PROTOTYPE（首页第十轮）：只给 ?variant= 选中的那一版启动脚本，切换时先停掉上一版。
+ * PROTOTYPE（首页第十一轮）：只给 ?variant= 选中的那一版启动脚本，切换时先停掉上一版。
  */
 import { currentVariant, showCurrentVariant } from '../prototype/variants';
-import { mountAtlas } from './atlas';
+import { mountSpectra } from './spectra';
 
 const MOUNT: Record<string, ((root: HTMLElement) => () => void) | undefined> = {
-  A: mountAtlas,
+  A: mountSpectra,
 };
 let stop: (() => void) | undefined;
 let applied: string | undefined;
