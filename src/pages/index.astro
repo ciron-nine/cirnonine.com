@@ -1,8 +1,12 @@
 ---
 /**
- * 首页（#19）：一张印在白纸上的记录星图，右边是星表（小册子）。
- * 设计在 #19 里从六轮原型中选定（B 记录星图，原型在 prototype/home-r5 分支）。
+ * PROTOTYPE（首页第十轮）：main 上的记录星图，整页按一个概念重做——视星等（喜帕恰斯的六等、普森的 2.512）。
+ * A 视星等；「现行」是 main 上现在的首页，放在一起对比。
+ * ?variant=A|0 切换，开发环境底部有切换条；?sample=1 用示意日期（真实内容里几乎都是「很久以前」）。
  */
+import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
+import RecordsIsland from '../components/home-r10/RecordsIsland.astro';
+import Atlas from '../components/home-r10/Atlas.astro';
 import Shell from '../components/shell/Shell.astro';
 import StarChart from '../components/home/StarChart.astro';
 import StarTable from '../components/home/StarTable.astro';
@@ -14,18 +18,34 @@ const chart = starChart(data);
 ---
 
 <Shell title="cirnonine">
-  <main id="main" class="home" data-home>
+  <main id="main" data-prototype-variants>
     <h1 class="visually-hidden">cirnonine</h1>
-    <div class="chart">
-      <StarChart chart={chart} />
+    <RecordsIsland data={data} />
+    <div data-variant="A" data-variant-name="视星等">
+      <Atlas data={data} />
     </div>
-    <StarTable data={data} regions={chart.regions} />
+    <div data-variant="0" data-variant-name="现行（main 上的首页）" hidden>
+      <div class="home" data-home>
+        <div class="chart">
+          <StarChart chart={chart} />
+        </div>
+        <StarTable data={data} regions={chart.regions} />
+      </div>
+    </div>
   </main>
+  {import.meta.env.DEV && <PrototypeSwitcher />}
 </Shell>
 
 <script>
   import '../components/home/home';
+  import '../components/home-r10/r10';
 </script>
+
+<style is:global>
+  [data-prototype-variants] > [hidden] {
+    display: none !important;
+  }
+</style>
 
 <style is:global>
   /* 首页是一张白纸：外壳的颜色取浅色那一套（只在首页，换页时这段样式跟着换掉） */

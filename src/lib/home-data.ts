@@ -24,6 +24,8 @@ export interface HomeRecord {
   favorite: boolean;
   /** 所在系列的 id，没有系列时为空 */
   series?: string;
+  /** 我写了什么：长评、只有短评，或者什么都没写 */
+  review?: 'long' | 'short';
 }
 
 export interface HomeCategory {
@@ -90,6 +92,7 @@ function toHomeRecord(entry: AnyRecord, categoryHref: string): HomeRecord {
     href: (entry.collection !== 'songs' && detailPage(entry)?.href) || categoryHref,
     favorite: entry.data.favorite,
     series: series?.id,
+    review: entry.body?.trim() ? 'long' : entry.data.shortReview ? 'short' : undefined,
   };
 }
 
