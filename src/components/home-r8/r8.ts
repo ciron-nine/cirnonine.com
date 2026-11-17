@@ -1,15 +1,13 @@
 /**
- * PROTOTYPE（首页第七轮）：只给 ?variant= 选中的那一版启动脚本，切换时先停掉上一版。
+ * PROTOTYPE（首页第八轮）：只给 ?variant= 选中的那一版启动脚本，切换时先停掉上一版。
  */
 import { currentVariant, showCurrentVariant } from '../prototype/variants';
-import { mountPlanisphere } from './a-planisphere';
-import { mountPlate } from './b-plate';
-import { mountLookback } from './c-lookback';
+import { mountForgetting } from './forgetting';
+import { mountWorldline } from './worldline';
 
 const MOUNT: Record<string, ((root: HTMLElement) => () => void) | undefined> = {
-  A: mountPlanisphere,
-  B: mountPlate,
-  C: mountLookback,
+  A: mountForgetting,
+  B: mountWorldline,
 };
 let stop: (() => void) | undefined;
 let applied: string | undefined;

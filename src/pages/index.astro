@@ -1,14 +1,13 @@
 ---
 /**
- * PROTOTYPE（首页第七轮）：参考 rothmary.com 的方法（不是它的样子），从我们自己的题材里找三个浪漫的结构：
- * A 活动星盘 / B 记忆的误差 / C 回望；「现行」是 main 上现在的首页，放在一起对比。
- * ?variant=A|B|C|0 切换，开发环境底部有切换条；?sample=1 用示意日期（真实内容里几乎都是「很久以前」）。
+ * PROTOTYPE（首页第八轮）：学 rothmary.com 的方法——拿一个本身就浪漫、自带结构的概念当设计模型：
+ * A 遗忘曲线（艾宾浩斯）/ B 光锥与世界线（闵可夫斯基）；「现行」是 main 上现在的首页，放在一起对比。
+ * ?variant=A|B|0 切换，开发环境底部有切换条；?sample=1 用示意日期（真实内容里几乎都是「很久以前」）。
  */
 import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
 import RecordsIsland from '../components/home-r7/RecordsIsland.astro';
-import VariantA from '../components/home-r7/VariantA.astro';
-import VariantB from '../components/home-r7/VariantB.astro';
-import VariantC from '../components/home-r7/VariantC.astro';
+import Forgetting from '../components/home-r8/Forgetting.astro';
+import Worldline from '../components/home-r8/Worldline.astro';
 import '../components/home-r7/tokens.css';
 import Shell from '../components/shell/Shell.astro';
 import StarChart from '../components/home/StarChart.astro';
@@ -24,14 +23,11 @@ const chart = starChart(data);
   <main id="main" data-prototype-variants>
     <h1 class="visually-hidden">cirnonine</h1>
     <RecordsIsland data={data} />
-    <div data-variant="A" data-variant-name="活动星盘" class="r7">
-      <VariantA data={data} />
+    <div data-variant="A" data-variant-name="遗忘曲线" class="r7">
+      <Forgetting data={data} />
     </div>
-    <div data-variant="B" data-variant-name="记忆的误差" class="r7" hidden>
-      <VariantB data={data} />
-    </div>
-    <div data-variant="C" data-variant-name="回望" class="r7" hidden>
-      <VariantC data={data} />
+    <div data-variant="B" data-variant-name="光锥与世界线" class="r7" hidden>
+      <Worldline data={data} />
     </div>
     <div data-variant="0" data-variant-name="现行（main 上的首页）" hidden>
       <div class="home" data-home>
@@ -47,7 +43,7 @@ const chart = starChart(data);
 
 <script>
   import '../components/home/home';
-  import '../components/home-r7/r7';
+  import '../components/home-r8/r8';
 </script>
 
 <style is:global>
