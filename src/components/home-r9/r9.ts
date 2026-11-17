@@ -1,13 +1,11 @@
 /**
- * PROTOTYPE（首页第八轮）：只给 ?variant= 选中的那一版启动脚本，切换时先停掉上一版。
+ * PROTOTYPE（首页第九轮）：只给 ?variant= 选中的那一版启动脚本，切换时先停掉上一版。
  */
 import { currentVariant, showCurrentVariant } from '../prototype/variants';
-import { mountForgetting } from './forgetting';
-import { mountWorldline } from './worldline';
+import { mountBeichen } from './beichen';
 
 const MOUNT: Record<string, ((root: HTMLElement) => () => void) | undefined> = {
-  A: mountForgetting,
-  B: mountWorldline,
+  A: mountBeichen,
 };
 let stop: (() => void) | undefined;
 let applied: string | undefined;

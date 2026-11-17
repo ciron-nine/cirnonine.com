@@ -1,0 +1,427 @@
+---
+/**
+ * PROTOTYPE（首页第九轮）北辰。「为政以德，譬如北辰，居其所而众星共之。」
+ * 整页是一张盖天式的圆星图：圆心是北极，放我的头像；看过的作品是绕着它转的星。
+ * 四个类别是四象：东方苍龙（游戏）、北方玄武（视觉小说）、西方白虎（音乐）、南方朱雀（动画）——
+ * 按五方五音，西方属商，所以音乐在西；中央属宫，是北辰。每一象的大小是它真实的宿度，不按记录多少分。
+ * 去极度分三圈：心头好在内规以内（恒显，终年不落）；记得日子的在中间；很久以前的贴着外规（快要没入地平线）。
+ * 同一系列连成一个星官。星空按此刻的恒星时转着，太阳在它今天所在的宿里（唯一的朱色）。
+ * 字号也出自四象的宿度：75 : 80 : 98¼ : 112。见 beichen.ts、sky.ts。
+ */
+import type { HomeData } from '../../lib/home-data';
+import AvatarPlaceholder from '../home/AvatarPlaceholder.astro';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+const [hello, ...notes] = data.intro;
+---
+
+<div class="bc" data-bc>
+  <section class="intro">
+    <p class="hello voice">{hello}</p>
+    {notes.map((p) => <p class="voice">{p}</p>)}
+  </section>
+
+  <figure class="plate" data-plate>
+    <svg class="sky" data-sky role="group" aria-label="星图：圆心是北极，四个方向是四个类别，一颗星是一条记录"></svg>
+    <div class="pole" aria-hidden="true">
+      {data.avatars[0] && <AvatarPlaceholder avatar={data.avatars[0]} class="pole-avatar" />}
+    </div>
+    <ul class="xiang" data-xiang>
+      {
+        data.categories.map((c) => (
+          <li data-cat={c.key}>
+            <a href={c.href}>{c.label}</a>
+            <span class="xn" data-xn />
+          </li>
+        ))
+      }
+    </ul>
+  </figure>
+
+  <section class="read" aria-live="polite">
+    <p class="read-main" data-read-main></p>
+    <p class="read-sub" data-read-sub></p>
+  </section>
+
+  <section class="time">
+    <p class="sc" data-sc></p>
+    <p class="clock" data-clock></p>
+  </section>
+
+  <p class="sample-note" data-sample-note hidden>示意日期</p>
+  <p hidden>
+    东方苍龙北方玄武西方白虎南方朱雀角亢氐房心尾箕斗牛女虚危室壁奎娄胃昴毕觜参井鬼柳星张翼轸宿内规外规赤道黄道天汉日在度
+    子丑寅卯辰巳午未申酉戌亥初正刻一二三四五六七八九十〇立春雨水惊蛰春分清明谷雨夏满芒种暑秋处白露寒霜降冬小大至前后第日还有天
+    0123456789:年月心头好记得是哪一天只记得是哪个月只记得是哪一年很久以前游戏视觉小说动画音乐，。
+  </p>
+</div>
+
+<style>
+  /*
+   * 三色：纸、墨、朱。朱只给太阳和「正指着的东西」。
+   * 字号：以东方七宿 75 度为基音，往上是西 80、北 98¼、南 112；最大一级是北与南相乘（≈1.96）。
+   */
+  .bc {
+    --paper: #e5e7e6;
+    --ink: #17191d;
+    --zhu: #b8362a;
+    --dim: color-mix(in srgb, var(--ink) 58%, var(--paper));
+    --faint: color-mix(in srgb, var(--ink) 30%, var(--paper));
+    --hair: color-mix(in srgb, var(--ink) 16%, var(--paper));
+    --t0: 0.9375rem;
+    --t1: calc(var(--t0) * 80 / 75);
+    --t2: calc(var(--t0) * 98.25 / 75);
+    --t3: calc(var(--t0) * 112 / 75);
+    --t4: calc(var(--t0) * 98.25 * 112 / 5625);
+    --micro: 0.6875rem;
+
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(14rem, 1fr) minmax(0, auto) minmax(14rem, 1fr);
+    grid-template-rows: 1fr auto;
+    gap: 0 clamp(1rem, 3vw, 3rem);
+    min-height: calc(100svh - 4.5rem);
+    color: var(--ink);
+  }
+
+  .bc::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    content: '';
+    background: var(--paper);
+  }
+
+  .intro {
+    grid-area: 1 / 1;
+    align-self: start;
+    max-width: 19rem;
+    padding-top: 6vh;
+    font-size: var(--t0);
+    line-height: 2;
+  }
+
+  .intro p {
+    margin: 0 0 0.75em;
+  }
+
+  .hello {
+    font-size: var(--t3);
+    line-height: 1.4;
+  }
+
+  /* ---------- 星图 ---------- */
+  .plate {
+    position: relative;
+    grid-area: 1 / 2 / 3 / 3;
+    align-self: center;
+    width: min(calc(100svh - 6rem), 52vw);
+    aspect-ratio: 1;
+    margin: 0;
+  }
+
+  .sky {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    touch-action: manipulation;
+  }
+
+  .sky :global(.gui) {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1;
+  }
+
+  .sky :global(.gui.nei) {
+    stroke-dasharray: 1 3;
+  }
+
+  .sky :global(.chidao) {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 0.6;
+  }
+
+  .sky :global(.huangdao) {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 0.6;
+    stroke-dasharray: 5 3;
+  }
+
+  .sky :global(.rim) {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.4;
+  }
+
+  .sky :global(.rim-in) {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 0.6;
+  }
+
+  .sky :global(.su-line) {
+    stroke: var(--faint);
+    stroke-width: 0.6;
+  }
+
+  .sky :global(.su-line.xiang-edge) {
+    stroke: var(--ink);
+    stroke-width: 0.9;
+  }
+
+  .sky :global(.su-tick) {
+    stroke: var(--ink);
+    stroke-width: 0.6;
+  }
+
+  /* --u：viewBox 里的一个单位在屏幕上有多大，字和星的大小按屏幕像素定 */
+  .sky :global(.su-name) {
+    font-size: calc(var(--u, 1.3) * 12px);
+    text-anchor: middle;
+    dominant-baseline: central;
+    fill: var(--ink);
+    transition: fill 0.2s;
+  }
+
+  .sky :global(.su-name.on) {
+    fill: var(--zhu);
+  }
+
+  .sky :global(.gui-name) {
+    font-size: calc(var(--u, 1.3) * 9px);
+    letter-spacing: 0.4em;
+    fill: var(--dim);
+  }
+
+  .sky :global(.han) {
+    stroke: var(--faint);
+    stroke-width: 0.5;
+    stroke-dasharray: 1 2.5;
+  }
+
+  .sky :global(.han-dot) {
+    fill: var(--faint);
+  }
+
+  .sky :global(.wedge) {
+    fill: color-mix(in srgb, var(--zhu) 7%, transparent);
+    stroke: var(--zhu);
+    stroke-width: 0.8;
+    pointer-events: none;
+  }
+
+  .sky :global(.meridian) {
+    stroke: var(--ink);
+    stroke-width: 0.6;
+  }
+
+  .sky :global(.guan) {
+    stroke: var(--ink);
+    stroke-width: 0.8;
+  }
+
+  .sky :global(.star) {
+    cursor: pointer;
+    outline: none;
+  }
+
+  .sky :global(.star .hit) {
+    r: calc(var(--u, 1.3) * 10px);
+    fill: transparent;
+  }
+
+  .sky :global(.star .body) {
+    r: calc(var(--u, 1.3) * 3.2px);
+    fill: var(--paper);
+    stroke: var(--ink);
+    stroke-width: 1.1;
+    transition:
+      fill 0.2s,
+      stroke 0.2s;
+  }
+
+  .sky :global(.star.fav .body) {
+    r: calc(var(--u, 1.3) * 4.5px);
+    fill: var(--ink);
+  }
+
+  .sky :global(.star.long-ago .body) {
+    stroke: var(--dim);
+    stroke-dasharray: 1.5 1.5;
+  }
+
+  .sky :global(.star:hover .body),
+  .sky :global(.star:focus-visible .body),
+  .sky :global(.star.on .body) {
+    fill: var(--zhu);
+    stroke: var(--zhu);
+  }
+
+  .sky :global(.star-name) {
+    font-size: calc(var(--u, 1.3) * 13px);
+    fill: var(--ink);
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: calc(var(--u, 1.3) * 4px);
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  .sky :global(.sun) {
+    fill: var(--zhu);
+  }
+
+  .sky :global(.sun-ring) {
+    fill: none;
+    stroke: var(--zhu);
+    stroke-width: 0.8;
+  }
+
+  /* 北辰：头像 */
+  .pole {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 11%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .pole :global(.pole-avatar) {
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px var(--paper), 0 0 0 4px var(--ink);
+  }
+
+  /* 四象：类别的入口，跟着星空转到它们自己那一方 */
+  .xiang {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .xiang li {
+    position: absolute;
+    display: grid;
+    justify-items: center;
+    gap: 0.1rem;
+    white-space: nowrap;
+  }
+
+  .xiang a {
+    font-size: var(--t2);
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    color: var(--ink);
+    text-decoration: none;
+    transition: letter-spacing 0.35s, text-indent 0.35s;
+  }
+
+  .xiang a:hover,
+  .xiang a:focus-visible {
+    letter-spacing: 0.5em;
+    text-indent: 0.5em;
+    outline: none;
+  }
+
+  .xn {
+    font-size: var(--micro);
+    letter-spacing: 0.3em;
+    color: var(--dim);
+  }
+
+  /* ---------- 读数：指着什么，就读出什么 ---------- */
+  .read {
+    grid-area: 2 / 1;
+    align-self: end;
+    padding-bottom: 5vh;
+  }
+
+  .read p,
+  .time p {
+    margin: 0;
+  }
+
+  .read-main {
+    font-size: var(--t2);
+    line-height: 1.4;
+  }
+
+  .read-sub {
+    margin-top: 0.4rem !important;
+    font-size: var(--micro);
+    letter-spacing: 0.25em;
+    color: var(--dim);
+  }
+
+  .time {
+    grid-area: 2 / 3;
+    align-self: end;
+    justify-self: end;
+    padding-bottom: 5vh;
+    text-align: right;
+  }
+
+  .sc {
+    font-size: var(--t4);
+    line-height: 1.1;
+    letter-spacing: 0.15em;
+  }
+
+  .clock {
+    margin-top: 0.4rem !important;
+    font-size: var(--micro);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.25em;
+    color: var(--dim);
+  }
+
+  @media (max-width: 51.24rem) {
+    .bc {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto;
+      min-height: 0;
+    }
+
+    .intro,
+    .plate,
+    .read,
+    .time {
+      grid-area: auto;
+    }
+
+    /* 两边留出四象的字 */
+    .plate {
+      width: 62%;
+      margin: 4rem auto 3.5rem;
+    }
+
+    .xn {
+      display: none;
+    }
+
+    .xiang a,
+    .xiang a:hover,
+    .xiang a:focus-visible {
+      font-size: var(--t0);
+      letter-spacing: 0.1em;
+      text-indent: 0.1em;
+    }
+
+    .time {
+      justify-self: start;
+      text-align: left;
+    }
+
+    .read,
+    .time {
+      padding-bottom: 2rem;
+    }
+  }
+</style>
