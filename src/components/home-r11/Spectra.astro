@@ -1,12 +1,17 @@
 ---
 /**
  * PROTOTYPE（首页第十一轮）光谱型。main 上的记录星图（每条记录一颗星）照旧，整页按一个概念重做：哈佛光谱分类。
- * 一颗星的颜色来自它封面的主色：求出相关色温，落在 O B A F G K M 哪一型，星就画成那个温度的黑体的颜色（data.ts、spectrum.ts）。
- * 星图离中心多远是温度（热的在里，冷的在外），网格就是各型的分界圆；所有星一样大，没有谁比谁亮。
- * 星图下面是一条光谱：指着哪颗星，就是哪颗星的光谱——普朗克曲线定亮度，按它那一型刻上吸收线。没指着的时候是太阳（G2）。
- * 这一页没有另外的强调色：被指着的东西用它自己的星色。字号出自氢的巴尔末线：以 Hδ 410.2 nm 为正文，
- * Hγ 434.0、Hβ 486.1、Hα 656.3 往上，最大一级是 (Hα/Hδ)²；最小一级是 Hδ/Hβ。
- * 右边一栏：头像、一句话、光谱序列，和按光谱型分好组的全部记录。
+ * 一颗星的颜色来自它封面的主色：按冷暖求出色温，落在 O B A F G K M 哪一型，星就画成那个温度的黑体的颜色（data.ts、spectrum.ts）。
+ * 星图离中心多远是温度（热的在里，冷的在外），七型各占一圈；所有星一样大，没有谁比谁亮。
+ *
+ * 第一屏只有三样东西：
+ * - 左边一个很大的光谱型（例如 K6）：指着哪颗星就是哪颗星的；没指着的时候，是所有记录的光一样亮、加在一起的那一型——
+ *   网站是自画像，作品是构成我的材料（ADR-0005），这个数就是「我」是一颗什么样的星
+ * - 右边的星图，平时不标名字（放大才标），只看颜色
+ * - 横贯整个屏幕的一条光谱：和左边的光谱型是同一束光，普朗克曲线定亮度，按光谱型刻上吸收线
+ * 往下是星表：按光谱型分组的全部记录，头像和一句话在它开头。
+ * 没有另外的强调色：被指着的东西用它自己的星色。字号出自氢的巴尔末线（Hδ 410.2 nm 是正文，Hγ、Hβ、Hα 往上），
+ * 最大的那个光谱型是 (Hα/Hδ)^5。
  */
 import type { HomeData } from '../../lib/home-data';
 import AvatarPlaceholder from '../home/AvatarPlaceholder.astro';
@@ -18,34 +23,38 @@ interface Props {
 const { data } = Astro.props;
 const hello = data.intro[0];
 const mid = (hot: number, cool: number) => Math.sqrt(hot * cool);
-const range = (hot: number, cool: number) =>
-  `${cool.toLocaleString('en-US')}–${hot.toLocaleString('en-US')} K`;
+const range = (hot: number, cool: number) => `${cool.toLocaleString('en-US')}–${hot.toLocaleString('en-US')} K`;
 ---
 
 <div class="sp" data-sp>
-  <div class="chart">
-    <svg class="sky" viewBox="0 0 1000 1000" data-sky role="group" aria-label="记录星图：每条记录是一颗星，颜色是它封面的色温；离中心越近越热；方向键在星之间移动"></svg>
-    <div class="reading">
-      <p class="read" data-read aria-live="polite"></p>
-      <div class="strip">
-        <canvas width="720" height="40" data-strip aria-hidden="true"></canvas>
-        <div class="lines" data-lines aria-hidden="true"></div>
-        <div class="nm" aria-hidden="true">
-          <span style="left: 5.88%">400</span>
-          <span style="left: 35.29%">500</span>
-          <span style="left: 64.71%">600</span>
-          <span style="left: 94.12%">700 nm</span>
-        </div>
-      </div>
+  <section class="stage">
+    <div class="reading" aria-live="polite">
+      <p class="type" data-type></p>
+      <p class="name" data-name></p>
+      <p class="meta" data-meta></p>
+    </div>
+    <div class="chart">
+      <svg class="sky" viewBox="0 0 1000 1000" data-sky role="group" aria-label="记录星图：每条记录是一颗星，颜色是它封面的色温；离中心越近越热；方向键在星之间移动"></svg>
       <div class="scope" role="group" aria-label="缩放星图">
         <button type="button" data-zoom="out" aria-label="缩小">−</button>
         <button type="button" data-zoom="in" aria-label="放大">+</button>
       </div>
     </div>
+  </section>
+
+  <div class="band" aria-hidden="true">
+    <div class="lines" data-lines></div>
+    <canvas width="1440" height="64" data-strip></canvas>
+    <div class="nm">
+      <span style="left: 5.88%">400</span>
+      <span style="left: 35.29%">500</span>
+      <span style="left: 64.71%">600</span>
+      <span style="left: 94.12%">700 nm</span>
+    </div>
   </div>
 
-  <aside class="side" aria-label="星表">
-    <div class="head">
+  <section class="index" aria-label="星表">
+    <div class="who">
       <div class="avatar">
         {
           data.avatars.map((a, i) => (
@@ -68,55 +77,46 @@ const range = (hot: number, cool: number) =>
       <p class="hello voice">{hello}</p>
     </div>
 
-    <ol class="sequence" aria-label="光谱序列，从热到冷">
-      {
-        CLASSES.map((c) => (
-          <li style={`--c: ${blackbodyHex(mid(c.hot, c.cool))}`}>
-            <span class="cls">{c.cls}</span>
-          </li>
-        ))
-      }
-    </ol>
-
     <div class="groups" data-groups>
       {
         CLASSES.map((c) => (
           <section data-cls={c.cls} style={`--c: ${blackbodyHex(mid(c.hot, c.cool))}`}>
             <h2>
               <span class="cls">{c.cls}</span>
-              <span class="range">{range(c.hot, c.cool)}</span>
-              <span class="note">{c.note}</span>
+              <span class="about">
+                <span>{c.note}</span>
+                <span class="range">{range(c.hot, c.cool)}</span>
+              </span>
             </h2>
             <ol data-rows />
           </section>
         ))
       }
     </div>
-  </aside>
+  </section>
 
   <p class="sample-note" data-sample-note hidden>示意的封面颜色</p>
-  <p hidden>OBAFGKM0123456789,–Knm HαβγδDH太阳电离氦中性氢线最强钙这一型金属线氧化钛封面游戏视觉小说动画音乐年月日很久以前</p>
+  <p hidden>OBAFGKM0123456789,–Knm HαβγδD太阳电离氦中性氢线最强钙这一型金属线氧化钛封面星色部作品的光一样亮加在一起游戏视觉小说动画音乐年月日很久以前</p>
 </div>
 
 <style>
   .sp {
-    --night: #0b0d13;
-    --ink: #e6e8ee;
-    --dim: color-mix(in srgb, var(--ink) 60%, var(--night));
-    --faint: color-mix(in srgb, var(--ink) 34%, var(--night));
-    --hair: color-mix(in srgb, var(--ink) 13%, var(--night));
+    --night: #0a0c12;
+    --ink: #e8e9ee;
+    --dim: color-mix(in srgb, var(--ink) 58%, var(--night));
+    --faint: color-mix(in srgb, var(--ink) 32%, var(--night));
+    --hair: color-mix(in srgb, var(--ink) 12%, var(--night));
+    /* 当前那束光的颜色：没指着时是所有光加在一起的颜色 */
+    --cur: var(--ink);
     /* 字号：氢的巴尔末线 */
     --t0: 0.9375rem;
     --t-1: calc(var(--t0) * 410.2 / 486.1);
     --t1: calc(var(--t0) * 434 / 410.2);
     --t2: calc(var(--t0) * 486.1 / 410.2);
     --t3: calc(var(--t0) * 656.3 / 410.2);
-    --t4: calc(var(--t0) * 656.3 * 656.3 / 168264.04);
+    --t4: calc(var(--t3) * 656.3 / 410.2);
+    --t7: calc(var(--t4) * 4.0975);
 
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 20rem;
-    gap: clamp(2rem, 4vw, 4rem);
-    align-items: start;
     color: var(--ink);
   }
 
@@ -128,25 +128,104 @@ const range = (hot: number, cool: number) =>
     background: var(--night);
   }
 
-  /* ---------- 星图 ---------- */
-  .chart {
-    position: sticky;
-    top: 0;
+  /* ---------- 第一屏 ---------- */
+  .stage {
     display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
-    justify-items: center;
-    height: calc(100svh - 4rem);
-    padding-bottom: 1rem;
+    grid-template-columns: minmax(16rem, 1fr) auto;
+    align-items: end;
+    height: calc(100svh - 4rem - 6.5rem);
+    min-height: 30rem;
+  }
+
+  .reading {
+    align-self: end;
+    padding-bottom: 1.5rem;
+  }
+
+  .reading p {
+    margin: 0;
+  }
+
+  .type {
+    font-size: clamp(5.5rem, 11vw, var(--t7));
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+    color: var(--cur);
+    transition: color 0.4s;
+  }
+
+  .name {
+    max-width: 24rem;
+    margin-top: 1.25rem !important;
+    font-size: var(--t3);
+    line-height: 1.25;
+  }
+
+  .meta {
+    margin-top: 0.6rem !important;
+    font-size: var(--t-1);
+    font-variant-numeric: tabular-nums;
+    color: var(--dim);
+  }
+
+  .meta :global(.sw) {
+    display: inline-block;
+    width: 0.7em;
+    height: 0.7em;
+    margin: 0 0.35em 0 0.9em;
+    vertical-align: -0.05em;
+    border-radius: 50%;
+  }
+
+  .chart {
+    position: relative;
+    height: 100%;
+    aspect-ratio: 1;
   }
 
   .sky {
-    width: auto;
+    width: 100%;
     height: 100%;
-    max-width: 100%;
-    aspect-ratio: 1;
     overflow: hidden;
     touch-action: pan-y;
     user-select: none;
+  }
+
+  .scope {
+    position: absolute;
+    right: 0;
+    bottom: 0.5rem;
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .scope button {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    font: inherit;
+    font-size: var(--t1);
+    line-height: 1;
+    color: var(--dim);
+    cursor: pointer;
+    background: none;
+    border: 0;
+    border-radius: 50%;
+  }
+
+  .scope button:hover,
+  .scope button:focus-visible {
+    color: var(--ink);
+    outline: none;
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+
+  .scope button:disabled {
+    color: var(--hair);
+    cursor: default;
+    box-shadow: none;
   }
 
   .sky :global(.ring) {
@@ -157,7 +236,6 @@ const range = (hot: number, cool: number) =>
 
   .sky :global(.ring-label) {
     font-size: calc(12px / var(--zs, 1));
-    font-variant-numeric: tabular-nums;
     text-anchor: middle;
     dominant-baseline: central;
     fill: var(--faint);
@@ -170,14 +248,14 @@ const range = (hot: number, cool: number) =>
 
   .sky :global(.rim) {
     fill: none;
-    stroke: var(--faint);
+    stroke: var(--hair);
     stroke-width: 1;
   }
 
   .sky :global(.region) {
-    font-size: calc(15px / var(--zs, 1));
+    font-size: calc(14px / var(--zs, 1));
     letter-spacing: 0.5em;
-    fill: var(--dim);
+    fill: var(--faint);
     cursor: pointer;
     outline: none;
     transition: letter-spacing 0.35s, fill 0.35s;
@@ -198,7 +276,7 @@ const range = (hot: number, cool: number) =>
   .sky :global(.star) {
     cursor: pointer;
     outline: none;
-    transition: opacity 0.25s;
+    transition: opacity 0.3s;
   }
 
   .sky :global(.star .hit) {
@@ -206,7 +284,7 @@ const range = (hot: number, cool: number) =>
   }
 
   .sky :global(.star .glow) {
-    opacity: 0.45;
+    opacity: 0.5;
   }
 
   .sky :global(.star .halo) {
@@ -216,6 +294,7 @@ const range = (hot: number, cool: number) =>
     transition: opacity 0.25s;
   }
 
+  /* 名字：放大以后才标 */
   .sky :global(.star text) {
     display: none;
     font-size: calc(13px / var(--lod, 1));
@@ -223,7 +302,6 @@ const range = (hot: number, cool: number) =>
     pointer-events: none;
   }
 
-  .sky[data-lod='1'] :global(.star text.l1),
   .sky[data-lod='2'] :global(.star text.l2),
   .sky[data-lod='4'] :global(.star text.l4) {
     display: inline;
@@ -240,10 +318,9 @@ const range = (hot: number, cool: number) =>
   }
 
   .sky[data-lit] :global(.star:not(.lit)) {
-    opacity: 0.45;
+    opacity: 0.35;
   }
 
-  /* 打开时：从最热的里圈往外，一圈圈亮起来 */
   .sky[data-dark] :global(.star) {
     opacity: 0;
   }
@@ -252,55 +329,34 @@ const range = (hot: number, cool: number) =>
     transition-delay: var(--at, 0s);
   }
 
-  /* ---------- 光谱 ---------- */
-  .reading {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.5rem 1.5rem;
-    align-items: end;
-    width: min(100%, calc(100svh - 6rem));
-    padding-top: 0.75rem;
-  }
-
-  .read {
-    grid-column: 1 / -1;
-    min-height: 1.6em;
-    margin: 0;
-    font-size: var(--t-1);
-    color: var(--dim);
-  }
-
-  .read :global(b) {
-    margin-right: 0.8em;
-    font-size: var(--t1);
-    font-weight: 400;
-    color: var(--ink);
-  }
-
-  .read :global(.sw) {
-    display: inline-block;
-    width: 0.7em;
-    height: 0.7em;
-    margin: 0 0.35em 0 0.8em;
-    vertical-align: -0.05em;
-    border-radius: 50%;
-  }
-
-  .strip {
+  /* ---------- 横贯屏幕的光谱 ---------- */
+  .band {
     position: relative;
-    padding-bottom: 1.1rem;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    padding: 1.1rem 0 1.4rem;
   }
 
-  .strip canvas {
+  .band canvas {
     display: block;
     width: 100%;
-    height: 1.75rem;
+    height: 4rem;
+  }
+
+  .lines,
+  .nm {
+    position: absolute;
+    right: 0;
+    left: 0;
+    height: 1rem;
   }
 
   .lines {
-    position: absolute;
-    inset: -1rem 0 auto;
-    height: 1rem;
+    top: 0;
+  }
+
+  .nm {
+    bottom: 0;
   }
 
   .lines :global(span),
@@ -308,57 +364,28 @@ const range = (hot: number, cool: number) =>
     position: absolute;
     font-size: 0.625rem;
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
     color: var(--faint);
-    transform: translateX(-50%);
     white-space: nowrap;
-  }
-
-  .nm span {
-    top: calc(100% - 1rem);
-  }
-
-  .scope {
-    display: flex;
-    gap: 0.25rem;
-    padding-bottom: 1.4rem;
-  }
-
-  .scope button {
-    width: 2rem;
-    height: 2rem;
-    padding: 0;
-    font: inherit;
-    font-size: var(--t1);
-    line-height: 1;
-    color: var(--ink);
-    cursor: pointer;
-    background: none;
-    border: 0;
-    border-radius: 50%;
-  }
-
-  .scope button:hover,
-  .scope button:focus-visible {
-    outline: none;
-    box-shadow: inset 0 0 0 1px currentColor;
-  }
-
-  .scope button:disabled {
-    color: var(--hair);
-    cursor: default;
-    box-shadow: none;
+    transform: translateX(-50%);
   }
 
   /* ---------- 星表 ---------- */
-  .side {
-    padding: 3vh 0 12vh;
+  .index {
+    display: grid;
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: clamp(2rem, 6vw, 6rem);
+    align-items: start;
+    padding: 16vh 0 14vh;
   }
 
-  .head {
-    display: grid;
-    grid-template-columns: 5rem 1fr;
-    gap: 1.25rem;
-    align-items: end;
+  .who {
+    position: sticky;
+    top: 2rem;
+  }
+
+  .avatar {
+    width: 6.5rem;
   }
 
   .avatar :global(.avatar) {
@@ -386,39 +413,19 @@ const range = (hot: number, cool: number) =>
   }
 
   .hello {
-    margin: 0 0 1.9rem;
+    margin: 1.5rem 0 0;
     font-size: var(--t2);
-    line-height: 1.3;
+    line-height: 1.35;
   }
 
-  /* 光谱序列：七段，每段是那一型中间温度的黑体色 */
-  .sequence {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    padding: 0;
-    margin: 2.25rem 0 0;
-    list-style: none;
-  }
-
-  .sequence li {
-    display: grid;
-    gap: 0.4rem;
-  }
-
-  .sequence li::before {
-    height: 0.4rem;
-    content: '';
-    background: var(--c);
-  }
-
-  .sequence .cls {
-    font-size: var(--t-1);
-    text-align: center;
-    color: var(--dim);
+  .groups {
+    columns: 2 18rem;
+    column-gap: clamp(2rem, 5vw, 5rem);
   }
 
   .groups section {
-    margin-top: 2rem;
+    break-inside: avoid;
+    padding-bottom: 3.5rem;
   }
 
   .groups section[data-empty] {
@@ -426,30 +433,31 @@ const range = (hot: number, cool: number) =>
   }
 
   .groups h2 {
-    display: grid;
-    grid-template-columns: 1.75rem auto 1fr;
-    gap: 0.75rem;
-    align-items: baseline;
-    padding-bottom: 0.5rem;
-    margin: 0 0 0.4rem;
-    font-size: var(--t-1);
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    padding-bottom: 0.75rem;
+    margin: 0 0 0.5rem;
     font-weight: 400;
-    color: var(--dim);
     border-bottom: 1px solid var(--hair);
   }
 
   .groups h2 .cls {
-    font-size: var(--t3);
-    line-height: 1;
+    font-size: var(--t4);
+    font-weight: 300;
+    line-height: 0.8;
     color: var(--c);
+  }
+
+  .groups h2 .about {
+    display: grid;
+    font-size: var(--t-1);
+    line-height: 1.5;
+    color: var(--dim);
   }
 
   .groups h2 .range {
     font-variant-numeric: tabular-nums;
-  }
-
-  .groups h2 .note {
-    text-align: right;
     color: var(--faint);
   }
 
@@ -461,15 +469,10 @@ const range = (hot: number, cool: number) =>
 
   .groups :global(li) {
     display: grid;
-    grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
     gap: 0 0.75rem;
     align-items: baseline;
-    padding: 0.28rem 0;
-  }
-
-  .groups :global(.type i) {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 1.1em;
+    padding: 0.3rem 0;
   }
 
   .groups :global(.type) {
@@ -511,26 +514,41 @@ const range = (hot: number, cool: number) =>
   }
 
   @media (max-width: 51.24rem) {
-    .sp {
+    .stage {
       grid-template-columns: minmax(0, 1fr);
+      height: auto;
+      min-height: 0;
     }
 
     .chart {
-      position: relative;
-      height: auto;
-    }
-
-    .sky {
+      order: -1;
       width: 100%;
       height: auto;
     }
 
     .reading {
-      width: 100%;
+      padding-top: 1.5rem;
+    }
+
+    .index {
+      grid-template-columns: minmax(0, 1fr);
+      padding-top: 8vh;
+    }
+
+    .who {
+      position: static;
+      display: flex;
+      gap: 1.25rem;
+      align-items: end;
+    }
+
+    .hello {
+      margin: 0 0 1.75rem;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .type,
     .sky :global(.star),
     .sky :global(.region),
     .groups :global(a) {

@@ -1,19 +1,18 @@
 /**
  * PROTOTYPE（首页第十一轮）：光谱型的星图、光谱和星表（Spectra.astro）。
  * - 画星图：各型的分界圆、四个天区、系列连线、星（黑体色，一样大）、三级名字
- * - 光谱：指着一颗星（或星表里的一行），下面换成它的光谱，读出光谱型、色温和封面主色；没指着时是太阳
+ * - 光谱：指着一颗星（或星表里的一行），换成它的光谱型和光谱；没指着时是所有记录的光加在一起
  * - 缩放、拖动；键盘：星图只占一个 Tab 位置，方向键按从热到冷走
  * - 打开时星从最热的里圈往外亮起来（减少动态效果时直接全亮）
  */
 import { CENTER, RADIUS, SIZE } from '../../lib/star-chart-frame';
 import { dateLabel, kelvin, loadEntries, sampleMode } from './data';
 import { bandEdge, layout, LEVELS, STAR_R, type Star } from './layout';
-import { classify, drawSpectrum, LINES, VISIBLE } from './spectrum';
+import { blackbodyHex, classify, drawSpectrum, LINES, mixedTemperature, VISIBLE } from './spectrum';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const LABEL: Record<string, string> = { games: '游戏', 'visual-novels': '视觉小说', anime: '动画', songs: '音乐' };
-const SUN_T = 5772;
 
 function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number>, parent: Element) {
   const node = document.createElementNS(SVG, tag);
@@ -26,7 +25,9 @@ const f1 = (n: number) => n.toFixed(1);
 export function mountSpectra(wrapper: HTMLElement): () => void {
   const root = wrapper.querySelector<HTMLElement>('[data-sp]')!;
   const svg = root.querySelector<SVGSVGElement>('[data-sky]')!;
-  const read = root.querySelector<HTMLElement>('[data-read]')!;
+  const typeEl = root.querySelector<HTMLElement>('[data-type]')!;
+  const nameEl = root.querySelector<HTMLElement>('[data-name]')!;
+  const metaEl = root.querySelector<HTMLElement>('[data-meta]')!;
   const strip = root.querySelector<HTMLCanvasElement>('[data-strip]')!;
   const lineMarks = root.querySelector<HTMLElement>('[data-lines]')!;
   const still = reduced.matches;
@@ -115,11 +116,11 @@ export function mountSpectra(wrapper: HTMLElement): () => void {
     const w = Math.max(Math.round(strip.clientWidth * Math.min(devicePixelRatio, 2)), 200);
     if (strip.width !== w) strip.width = w;
   };
-  const showSpectrum = (T: number) => {
+  const showSpectrum = (T: number | number[]) => {
     scaleStrip();
     drawSpectrum(strip, T);
-    // 这一型最明显的几条线，标上名字
-    const { cls } = classify(T);
+    // 这一型（或加在一起的那一型）最明显的几条线，标上名字
+    const { cls } = classify(Array.isArray(T) ? mixedTemperature(T) : T);
     lineMarks.replaceChildren();
     const [a, b] = VISIBLE;
     for (const l of LINES) {
@@ -130,12 +131,17 @@ export function mountSpectra(wrapper: HTMLElement): () => void {
       lineMarks.append(span);
     }
   };
+  // 没指着星的时候：所有记录的光一样亮、加在一起——「我」是一颗什么样的星
+  const allT = entries.map((e) => e.T);
+  const mixT = mixedTemperature(allT);
+  const mix = classify(mixT);
   const idle = () => {
-    read.replaceChildren();
-    const b = document.createElement('b');
-    b.textContent = '太阳';
-    read.append(b, `G2　${kelvin(SUN_T)}　没指着星的时候，这里是太阳的光谱`);
-    showSpectrum(SUN_T);
+    root.style.setProperty('--cur', blackbodyHex(mixT));
+    typeEl.textContent = mix.label;
+    nameEl.textContent = 'cirnonine';
+    nameEl.removeAttribute('lang');
+    metaEl.textContent = `${kelvin(mixT)}　${entries.length} 部作品的光，一样亮，加在一起`;
+    showSpectrum(allT);
   };
   const lit: Element[] = [];
   const clear = () => {
@@ -154,17 +160,18 @@ export function mountSpectra(wrapper: HTMLElement): () => void {
       lit.push(x);
     }
     svg.dataset.lit = '';
-    read.replaceChildren();
-    const b = document.createElement('b');
-    b.textContent = s.e.title;
-    if (s.e.lang) b.lang = s.e.lang;
+    root.style.setProperty('--cur', s.e.star);
+    typeEl.textContent = s.e.type;
+    nameEl.textContent = s.e.title;
+    if (s.e.lang) nameEl.lang = s.e.lang;
+    else nameEl.removeAttribute('lang');
     const cover = document.createElement('span');
     cover.className = 'sw';
     cover.style.background = s.e.cover;
     const star = document.createElement('span');
     star.className = 'sw';
     star.style.background = s.e.star;
-    read.append(b, `${s.e.type}　${kelvin(s.e.T)}`, cover, '封面', star, `星色　${s.e.categoryLabel}　${dateLabel(s.e.date)}`);
+    metaEl.replaceChildren(kelvin(s.e.T), cover, '封面', star, `星色　${s.e.categoryLabel}　${dateLabel(s.e.date)}`);
     showSpectrum(s.e.T);
   };
   const keyOf = (t: EventTarget | null) => (t as Element | null)?.closest?.<HTMLElement | SVGElement>('[data-key]')?.dataset.key;
@@ -186,7 +193,7 @@ export function mountSpectra(wrapper: HTMLElement): () => void {
   on(groups, 'focusin', (e: FocusEvent) => light(keyOf(e.target)));
   on(groups, 'focusout', clear);
   idle();
-  const ro = new ResizeObserver(() => (lit.length ? light(keyOf(lit[0])) : showSpectrum(SUN_T)));
+  const ro = new ResizeObserver(() => (lit.length ? light(keyOf(lit[0])) : showSpectrum(allT)));
   ro.observe(strip);
 
   // ---------- 打开时 ----------
