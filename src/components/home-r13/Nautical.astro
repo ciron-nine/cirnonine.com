@@ -1,0 +1,416 @@
+---
+/**
+ * PROTOTYPE（首页第十三轮）夜航海图。设计模型是灯塔的「灯质」：夜里每一盏灯用自己独一无二的节奏闪，水手按节奏认出它。
+ * - 第一屏是一张铺满屏幕的夜航海图：等深线、水深数字、几座岛，正中一朵很大的罗经花
+ * - 每条记录是一盏灯，按它自己的灯质（lights.ts，全由作品的资料定）一直在闪；旁边印着灯质，像海图上那样
+ * - 罗经花中心是主灯，光束绕着它慢慢转：扫到哪盏灯，哪盏灯旁边就浮出它的名字，再慢慢淡掉
+ * - 同一系列是一组导标灯：前后排成一条线，海上画出那条导航线和它的方位
+ * - 往下是灯标表：全部的灯，按类别（也就是闪法）分组
+ * 颜色：夜间海图的深蓝和墨色；灯是白、红、绿、黄四种灯色；海图上标灯的品红色光芒符号。没有另外的强调色。
+ */
+import type { HomeData } from '../../lib/home-data';
+import { KIND_NAME, KIND_OF } from './lights';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+---
+
+<div class="nt" data-nt>
+  <section class="chart" data-chart>
+    <canvas class="sea" data-sea aria-hidden="true"></canvas>
+    <svg class="marks" data-marks role="group" aria-label="夜航海图：每条记录是一盏灯，按自己的节奏闪；方向键在灯之间移动，回车打开"></svg>
+    <div class="cartouche">
+      <p class="name">cirnonine</p>
+      <p class="kind">夜航图</p>
+      <p class="small" data-count></p>
+    </div>
+    <div class="read" aria-live="polite">
+      <p class="title" data-title></p>
+      <p class="char" data-char></p>
+      <p class="sub" data-sub></p>
+    </div>
+  </section>
+
+  <section class="list" aria-label="灯标表">
+    <h2>灯标表</h2>
+    <div class="groups">
+      {
+        data.categories.map((c) => (
+          <section data-cat={c.key}>
+            <h3>
+              <span>{c.label}</span>
+              <span class="kind-name">
+                <i>{KIND_OF[c.key]}</i> {KIND_NAME[KIND_OF[c.key]]}
+              </span>
+            </h3>
+            <ol data-rows />
+          </section>
+        ))
+      }
+    </div>
+  </section>
+  <p class="sample-note" data-sample-note hidden>示意的封面颜色</p>
+  <p hidden>夜航图灯标表盏深度单位米白红绿黄闪光明暗等明暗摩尔斯导标主灯磁差游戏视觉小说动画音乐年月日很久以前0123456789°</p>
+</div>
+
+<style>
+  .nt {
+    --deep: #060c16;
+    --ink: #dfe6ef;
+    --dim: color-mix(in srgb, var(--ink) 55%, var(--deep));
+    --faint: color-mix(in srgb, var(--ink) 30%, var(--deep));
+    --hair: color-mix(in srgb, var(--ink) 14%, var(--deep));
+    --magenta: #c2478f;
+    --serif: 'Times New Roman', Times, Georgia, serif;
+
+    color: var(--ink);
+  }
+
+  .nt::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    content: '';
+    background: var(--deep);
+  }
+
+  .chart {
+    position: relative;
+    width: 100vw;
+    height: calc(100svh - 4rem);
+    min-height: 34rem;
+    margin-left: calc(50% - 50vw);
+    overflow: hidden;
+    outline: none;
+  }
+
+  .sea,
+  .marks {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .marks :global(.contour) {
+    fill: none;
+    stroke: #3a5878;
+    stroke-width: 0.7;
+    opacity: 0.75;
+  }
+
+  .marks :global(.contour.shallow) {
+    stroke: #5f86ad;
+  }
+
+  .marks :global(.coast) {
+    fill: none;
+    stroke: #9fb4c8;
+    stroke-width: 1;
+  }
+
+  .marks :global(.sounding) {
+    font-family: var(--serif);
+    font-size: 10px;
+    font-style: italic;
+    fill: #4f6b88;
+  }
+
+  .marks :global(.depth-label) {
+    font-family: var(--serif);
+    font-size: 9px;
+    font-style: italic;
+    fill: #5f86ad;
+  }
+
+  /* 罗经花 */
+  .marks :global(.rose-ring) {
+    fill: none;
+    stroke: #8fa6bf;
+    stroke-width: 0.8;
+  }
+
+  .marks :global(.rose-tick) {
+    stroke: #8fa6bf;
+    stroke-width: 0.6;
+  }
+
+  .marks :global(.rose-num) {
+    font-family: var(--serif);
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    fill: #8fa6bf;
+  }
+
+  .marks :global(.rose-mag) {
+    font-family: var(--serif);
+    font-size: 10px;
+    font-style: italic;
+    text-anchor: middle;
+    fill: #6d87a3;
+  }
+
+  .marks :global(.rose-point) {
+    fill: #8fa6bf;
+  }
+
+  .marks :global(.rose-point.half) {
+    fill: var(--deep);
+    stroke: #8fa6bf;
+    stroke-width: 0.6;
+  }
+
+  .marks :global(.rose-line) {
+    stroke: #8fa6bf;
+    stroke-width: 0.4;
+    opacity: 0.6;
+  }
+
+  /* 主灯的光束 */
+  .marks :global(.beam) {
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+
+  /* 导标线 */
+  .marks :global(.lead) {
+    stroke: var(--magenta);
+    stroke-width: 0.8;
+    stroke-dasharray: 6 4;
+    opacity: 0.8;
+  }
+
+  .marks :global(.lead-label) {
+    font-family: var(--serif);
+    font-size: 10px;
+    font-style: italic;
+    fill: var(--magenta);
+  }
+
+  /* 一盏灯：品红的光芒符号、灯点、会闪的光、灯质、名字 */
+  .marks :global(.light) {
+    cursor: pointer;
+    outline: none;
+  }
+
+  .marks :global(.light .hit) {
+    fill: transparent;
+  }
+
+  .marks :global(.light .flare) {
+    fill: var(--magenta);
+    opacity: 0.85;
+  }
+
+  .marks :global(.light .dot) {
+    fill: var(--ink);
+  }
+
+  .marks :global(.light .char) {
+    font-family: var(--serif);
+    font-size: 10px;
+    font-style: italic;
+    fill: var(--dim);
+  }
+
+  .marks :global(.light .name) {
+    font-size: 12px;
+    fill: var(--ink);
+    paint-order: stroke;
+    stroke: var(--deep);
+    stroke-width: 4px;
+    pointer-events: none;
+  }
+
+  .marks :global(.light.on .char) {
+    fill: var(--ink);
+  }
+
+  .marks :global(.light .ring) {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 0.8;
+    opacity: 0;
+  }
+
+  .marks :global(.light.on .ring),
+  .marks :global(.light:focus-visible .ring) {
+    opacity: 1;
+  }
+
+  .cartouche {
+    position: absolute;
+    top: 1.5rem;
+    left: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-left));
+    padding: 0.9rem 1.1rem 0.8rem;
+    border: 1px solid var(--hair);
+    background: color-mix(in srgb, var(--deep) 82%, transparent);
+  }
+
+  .cartouche p,
+  .read p {
+    margin: 0;
+  }
+
+  .cartouche .name {
+    font-family: var(--serif);
+    font-size: 1.75rem;
+    font-style: italic;
+    line-height: 1;
+    letter-spacing: 0.02em;
+  }
+
+  .cartouche .kind {
+    margin-top: 0.4rem !important;
+    font-size: 0.8125rem;
+    letter-spacing: 0.6em;
+  }
+
+  .cartouche .small {
+    margin-top: 0.6rem !important;
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+  }
+
+  .read {
+    position: absolute;
+    bottom: 1.75rem;
+    left: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-left));
+    max-width: 22rem;
+    pointer-events: none;
+  }
+
+  .read .title {
+    font-size: 1.375rem;
+    line-height: 1.3;
+  }
+
+  .read .char {
+    margin-top: 0.35rem !important;
+    font-family: var(--serif);
+    font-size: 1.125rem;
+    font-style: italic;
+  }
+
+  .read .sub {
+    margin-top: 0.3rem !important;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    color: var(--dim);
+  }
+
+  /* 灯标表 */
+  .list {
+    padding: 12vh 0 14vh;
+  }
+
+  .list h2 {
+    margin: 0 0 2.5rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: 0.6em;
+    color: var(--dim);
+  }
+
+  .groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: 3rem clamp(2rem, 4vw, 4rem);
+  }
+
+  .groups h3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 0.6rem;
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    font-weight: 400;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .kind-name {
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+
+  .kind-name i {
+    font-family: var(--serif);
+    font-size: 1rem;
+    color: var(--ink);
+  }
+
+  .groups ol {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .groups :global(li) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 0.75rem;
+    align-items: baseline;
+    padding: 0.32rem 0;
+  }
+
+  .groups :global(a) {
+    color: var(--ink);
+    text-decoration: none;
+    transition: letter-spacing 0.35s;
+  }
+
+  .groups :global(.lc) {
+    font-family: var(--serif);
+    font-size: 0.875rem;
+    font-style: italic;
+    color: var(--dim);
+    white-space: nowrap;
+  }
+
+  .groups :global(.lc b) {
+    display: inline-block;
+    width: 0.55em;
+    height: 0.55em;
+    margin-right: 0.4em;
+    vertical-align: 0.05em;
+    border-radius: 50%;
+    background: var(--c);
+  }
+
+  .groups :global(li.on a),
+  .groups :global(li a:focus-visible) {
+    letter-spacing: 0.06em;
+    outline: none;
+  }
+
+  .sample-note {
+    position: fixed;
+    right: 1rem;
+    bottom: 4.25rem;
+    z-index: 5;
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+
+  @media (max-width: 51.24rem) {
+    .chart {
+      height: 44rem;
+    }
+
+    .cartouche .name {
+      font-size: 1.35rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .groups :global(a) {
+      transition: none;
+    }
+  }
+</style>
