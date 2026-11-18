@@ -1,0 +1,343 @@
+---
+/**
+ * PROTOTYPE（首页第十二轮）克拉尼图形。主题自己成立，作品只是点缀。
+ * 1787 年，克拉尼在金属板上撒沙，用琴弓拉板边，沙子聚到不动的节线上，排出花纹——人第一次「看见」了声音。
+ * 拿破仑看了表演，设奖征求它的数学解释；最后得奖的是用男性化名和数学家通信的索菲·热尔曼。
+ *
+ * 首页就是这块板子，它是一件乐器：
+ * - 成千上万粒沙按真实的振动方程跳、滑、停（plate.ts）；花纹是沙子自己走出来的
+ * - 板子自己会慢慢地奏：隔一阵换一个模式，沙子流向新的花纹（像一架自动演奏的钢琴）
+ * - 沿着板边拉（鼠标或手指划过板沿）就是拉弓：拉到哪一段，就是哪个模式，板子发出那个音（bow.ts）
+ * - 四边写着四个类别：点一个，板子换到那个类别的模式，那个类别的作品亮起来
+ * - 作品是其中几粒亮一点的沙，跟着沙子一起流动；指着一粒，读出它的名字，点它就进去
+ * 一种强调色：铜，只给弓和正指着的那一粒。
+ */
+import type { HomeData } from '../../lib/home-data';
+import { CATEGORY_MODE, modeLabel } from './plate';
+
+interface Props {
+  data: HomeData;
+}
+const { data } = Astro.props;
+const SIDE: Record<string, string> = { songs: 'top', games: 'right', anime: 'bottom', 'visual-novels': 'left' };
+---
+
+<div class="cl" data-cl>
+  <div class="stage" data-stage>
+    <div class="plate" data-plate>
+      <canvas data-sand aria-hidden="true"></canvas>
+      <div class="sides">
+        {
+          data.categories.map((c) => (
+            <button type="button" class={`side ${SIDE[c.key]}`} data-cat={c.key}>
+              <span class="name">{c.label}</span>
+              <span class="mode">{modeLabel(CATEGORY_MODE[c.key])}</span>
+            </button>
+          ))
+        }
+      </div>
+      <div
+        class="surface"
+        data-surface
+        tabindex="0"
+        role="application"
+        aria-label="克拉尼板：沿着板边拉动是拉弓；方向键在作品之间移动，回车打开"
+      >
+      </div>
+    </div>
+
+    <div class="reading">
+      <p class="now" data-mode aria-live="polite"></p>
+      <p class="hz" data-hz></p>
+    </div>
+
+    <div class="pick" aria-live="polite">
+      <p class="title" data-title></p>
+      <p class="sub" data-sub></p>
+    </div>
+
+    <p class="hint" data-hint>沿着板边拉一下</p>
+  </div>
+  <p class="sample-note" data-sample-note hidden>示意日期</p>
+  <p hidden>(),0123456789 Hz≈沿着板边拉一下克拉尼图形游戏视觉小说动画音乐年月日很久以前</p>
+</div>
+
+<style>
+  .cl {
+    --night: #08090b;
+    --plate: #121316;
+    --sand: #e8e2d4;
+    --ink: #e9e7e1;
+    --dim: color-mix(in srgb, var(--ink) 55%, var(--night));
+    --faint: color-mix(in srgb, var(--ink) 28%, var(--night));
+    --brass: #cfa75e;
+
+    color: var(--ink);
+  }
+
+  .cl::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    content: '';
+    background: var(--night);
+  }
+
+  .stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: calc(100svh - 4rem);
+    min-height: 32rem;
+  }
+
+  /* 板子：一块正方形的金属板，略带一点金属的反光 */
+  .plate {
+    --s: min(calc(100svh - 10rem), 62vw);
+
+    position: relative;
+    width: var(--s);
+    height: var(--s);
+    background:
+      radial-gradient(120% 90% at 30% 20%, rgb(255 255 255 / 0.05), transparent 55%),
+      radial-gradient(80% 80% at 75% 85%, rgb(255 255 255 / 0.025), transparent 60%),
+      var(--plate);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.07),
+      0 40px 120px rgb(0 0 0 / 0.6);
+  }
+
+  canvas {
+    position: absolute;
+    inset: -8%;
+    width: 116%;
+    height: 116%;
+    pointer-events: none;
+  }
+
+  .surface {
+    position: absolute;
+    inset: -6%;
+    cursor: crosshair;
+    outline: none;
+    touch-action: none;
+  }
+
+  .surface:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--brass);
+  }
+
+  /* 四边的类别：点一个，板子换到那个模式 */
+  .sides {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .side {
+    position: absolute;
+    display: flex;
+    gap: 0.9em;
+    align-items: baseline;
+    padding: 0.4rem 0.6rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    letter-spacing: 0.45em;
+    color: var(--dim);
+    white-space: nowrap;
+    cursor: pointer;
+    pointer-events: auto;
+    background: none;
+    border: 0;
+    transition:
+      color 0.3s,
+      letter-spacing 0.35s;
+  }
+
+  .side .mode {
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+  }
+
+  .side:hover,
+  .side:focus-visible,
+  .side[aria-pressed='true'] {
+    color: var(--ink);
+    letter-spacing: 0.6em;
+    outline: none;
+  }
+
+  .side[aria-pressed='true'] .mode {
+    color: var(--brass);
+  }
+
+  .side.top {
+    bottom: calc(100% + 1.6rem);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .side.bottom {
+    top: calc(100% + 1.6rem);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .side.left {
+    top: 50%;
+    right: calc(100% + 1.6rem);
+    writing-mode: vertical-rl;
+    transform: translateY(-50%);
+  }
+
+  .side.right {
+    top: 50%;
+    left: calc(100% + 1.6rem);
+    writing-mode: vertical-rl;
+    transform: translateY(-50%);
+  }
+
+  /* 左上：板子此刻的模式和频率 */
+  .reading {
+    position: absolute;
+    top: 1.5rem;
+    left: 0;
+  }
+
+  .reading p,
+  .pick p,
+  .hint {
+    margin: 0;
+  }
+
+  .now {
+    font-size: clamp(2.5rem, 4.5vw, 4.25rem);
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: 0.02em;
+  }
+
+  .hz {
+    margin-top: 0.6rem !important;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3em;
+    color: var(--dim);
+  }
+
+  /* 右下：正指着的那一粒 */
+  .pick {
+    position: absolute;
+    right: 0;
+    bottom: 1.5rem;
+    max-width: 18rem;
+    text-align: right;
+  }
+
+  .title {
+    font-size: 1.25rem;
+    line-height: 1.35;
+  }
+
+  .sub {
+    margin-top: 0.35rem !important;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 0;
+    font-size: 0.75rem;
+    letter-spacing: 0.35em;
+    color: var(--faint);
+    transition: opacity 0.6s;
+  }
+
+  .hint[data-gone] {
+    opacity: 0;
+  }
+
+  .sample-note {
+    position: fixed;
+    right: 1rem;
+    bottom: 4.25rem;
+    z-index: 5;
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+
+  @media (max-width: 51.24rem) {
+    .stage {
+      height: auto;
+      min-height: 0;
+      padding: 7rem 0 9rem;
+    }
+
+    .plate {
+      --s: min(calc(100vw - 5.5rem), 30rem);
+    }
+
+    .reading {
+      top: 0.5rem;
+    }
+
+    .now {
+      font-size: 2.25rem;
+    }
+
+    .pick {
+      right: auto;
+      bottom: 0.5rem;
+      left: 0;
+      text-align: left;
+    }
+
+    .hint {
+      bottom: 4.5rem;
+      display: none;
+    }
+
+    /* 手机上四边放不下：四个类别排成一行，放在板子下面 */
+    .sides {
+      inset: calc(100% + 1.25rem) 0 auto;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .side,
+    .side.top,
+    .side.bottom,
+    .side.left,
+    .side.right {
+      position: static;
+      flex-direction: column;
+      gap: 0.2rem;
+      align-items: center;
+      padding: 0.25rem 0;
+      letter-spacing: 0.15em;
+      writing-mode: horizontal-tb;
+      transform: none;
+    }
+
+    .side:hover,
+    .side:focus-visible,
+    .side[aria-pressed='true'] {
+      letter-spacing: 0.25em;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .side,
+    .hint {
+      transition: none;
+    }
+  }
+</style>

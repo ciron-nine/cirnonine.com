@@ -4,6 +4,7 @@
  */
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { compareCompletionDates, completionDateTimeAttribute, formatCompletionDate, type CompletionDate } from './completion-date';
+import { coverColor } from './cover-color';
 import { detailPage } from './detail-page';
 import { AVATARS, INTRO } from './home-content';
 import { originalTitleLang, quoteLang } from './original-title';
@@ -24,6 +25,10 @@ export interface HomeRecord {
   favorite: boolean;
   /** 所在系列的 id，没有系列时为空 */
   series?: string;
+  /** 我写了什么：长评、只有短评，或者什么都没写 */
+  review?: 'long' | 'short';
+  /** 封面的主色（#rrggbb），没有封面时为空 */
+  coverColor?: string;
 }
 
 export interface HomeCategory {
@@ -90,6 +95,7 @@ function toHomeRecord(entry: AnyRecord, categoryHref: string): HomeRecord {
     href: (entry.collection !== 'songs' && detailPage(entry)?.href) || categoryHref,
     favorite: entry.data.favorite,
     series: series?.id,
+    review: entry.body?.trim() ? 'long' : entry.data.shortReview ? 'short' : undefined,
   };
 }
 
@@ -106,10 +112,16 @@ export async function loadHomeData(): Promise<HomeData> {
     anime: await getCollection('anime'),
     songs: await getCollection('songs'),
   };
-  const categories = CATEGORIES.map((c) => ({
-    ...c,
-    records: entries[c.key].map((e) => toHomeRecord(e, c.href)).sort(byDate),
-  }));
+  const withColor = async (e: AnyRecord, href: string) => ({
+    ...toHomeRecord(e, href),
+    coverColor: e.data.cover ? await coverColor(e.data.cover) : undefined,
+  });
+  const categories = await Promise.all(
+    CATEGORIES.map(async (c) => ({
+      ...c,
+      records: (await Promise.all(entries[c.key].map((e) => withColor(e, c.href)))).sort(byDate),
+    })),
+  );
   const all = categories.flatMap((c) => c.records);
   const find = (category: CategoryKey, slug: string) => all.find((r) => r.category === category && r.slug === slug);
 
