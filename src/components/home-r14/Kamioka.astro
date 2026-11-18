@@ -20,17 +20,19 @@ const { data } = Astro.props;
     <canvas data-gl></canvas>
     <div class="labels" data-labels></div>
 
-    <div class="head">
-      <p class="place">神冈</p>
-      <p class="facts">地下 1,000 m　超纯水 50,220 t　光电倍增管 11,146 颗</p>
-      <p class="intro" data-intro>1987 年 2 月 23 日 7:35 UT，不到 13 秒，12 个</p>
-    </div>
     <p class="counter" data-counter>事件 №0000</p>
     <div class="now" aria-live="polite">
       <p class="title" data-title></p>
       <p class="sub" data-sub></p>
+      <p class="sig" data-sig></p>
     </div>
 
+    <canvas class="display" data-display aria-hidden="true"></canvas>
+
+  </section>
+
+  <section class="list" data-list aria-label="事件表">
+    <h2>事件表</h2>
     <ul class="key">
       {
         data.categories.map((c) => (
@@ -42,10 +44,7 @@ const { data } = Astro.props;
         ))
       }
     </ul>
-  </section>
 
-  <section class="list" data-list aria-label="事件表">
-    <h2>事件表</h2>
     <div class="groups">
       {
         data.categories.map((c) => (
@@ -137,43 +136,22 @@ const { data } = Astro.props;
     letter-spacing: 0.04em;
   }
 
+  .labels :global(.ring-label.out) {
+    transition: opacity 0.6s;
+  }
+
   .labels :global(.ring-label .s) {
     font-size: 0.6875rem;
     letter-spacing: 0.2em;
     color: var(--blue);
   }
 
-  .head,
   .counter,
   .now,
-  .key {
+  .display {
     position: absolute;
     margin: 0;
     pointer-events: none;
-  }
-
-  .head {
-    top: 1.5rem;
-    left: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-left));
-  }
-
-  .head p {
-    margin: 0;
-  }
-
-  .place {
-    font-size: clamp(2.25rem, 4vw, 3.5rem);
-    font-weight: 300;
-    line-height: 1;
-    letter-spacing: 0.5em;
-  }
-
-  .facts {
-    margin-top: 0.75rem !important;
-    font-size: 0.6875rem;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.2em;
-    color: var(--dim);
   }
 
   .counter {
@@ -185,19 +163,6 @@ const { data } = Astro.props;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.08em;
     color: var(--gold);
-  }
-
-  .intro {
-    margin-top: 0.4rem !important;
-    font-size: 0.6875rem;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.2em;
-    color: var(--blue);
-    transition: opacity 1.2s;
-  }
-
-  .intro[data-gone] {
-    opacity: 0;
   }
 
   .now {
@@ -222,12 +187,28 @@ const { data } = Astro.props;
     color: var(--dim);
   }
 
-  .key {
+  .now .sig {
+    margin-top: 0.3rem !important;
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+    color: var(--blue);
+  }
+
+  /* 右下角：这一次的事件图 */
+  .display {
     right: max(clamp(1rem, 4vw, 2.5rem), env(safe-area-inset-right));
     bottom: 1.75rem;
-    display: grid;
-    gap: 0.35rem;
+    width: 11rem;
+    height: 10.5rem;
+  }
+
+  .key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2.5rem;
     padding: 0;
+    margin: -1.25rem 0 2.75rem;
     list-style: none;
     font-size: 0.75rem;
     color: var(--dim);
@@ -311,11 +292,29 @@ const { data } = Astro.props;
   }
 
   .groups :global(li) {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    align-items: baseline;
-    padding: 0.32rem 0;
+    display: grid;
+    grid-template-columns: 3.6rem minmax(0, 1fr) auto;
+    gap: 0 0.9rem;
+    align-items: center;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .groups :global(li canvas) {
+    width: 3.6rem;
+    height: 3.4rem;
+  }
+
+  .groups :global(.row) {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .groups :global(.sig) {
+    font-size: 0.625rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    color: var(--faint);
   }
 
   .groups :global(a) {
@@ -358,18 +357,18 @@ const { data } = Astro.props;
       height: 42rem;
     }
 
-    .place {
-      letter-spacing: 0.3em;
+    .display {
+      width: 7rem;
+      height: 6.7rem;
     }
 
-    .key {
-      display: none;
+    .now {
+      max-width: 13rem;
     }
 
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .intro,
     .groups :global(button) {
       transition: none;
     }

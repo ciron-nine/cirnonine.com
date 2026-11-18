@@ -100,31 +100,55 @@ export interface Event {
   ring: Ring;
   /** 环的中心落在罐壁上的那一点（标名字、转镜头用） */
   center: V;
-  /** 亮起来的管子：编号、亮度、比事件开始晚多少秒 */
-  hits: { i: number; w: number; delay: number }[];
+  /** 这一次的「指纹」：每条记录各不相同 */
+  sig: { angle: number; sharp: number; fill: number; second?: number; echo: boolean };
+  /**
+   * 亮起来的管子：编号、亮度、晚多少秒亮、颜色（0 = 最早到的光，深蓝；1 = 最晚到的，冰白）。
+   * 时间都放慢了很多倍：真的事件只有几十纳秒。
+   */
+  hits: { i: number; w: number; delay: number; tint: number }[];
 }
 
-/** 一条记录的事件：顶点和方向由原名定，环的种类由类别定 */
+/**
+ * 一条记录的事件。全由原名（键）推出来，不看年代，也不分高低：
+ * - 顶点和方向：粒子从罐子里哪里出发、朝哪里飞
+ * - 锥角：粒子越接近光速，环张得越开。cos θ = 1/(nβ)，β 取 0.80–1.00，θ 在 20°–41° 之间
+ * - 径迹长短（只有 μ 子）：飞得越远，环里面落的光越满
+ * - 锐利程度：同一种粒子里也有的清、有的毛
+ * - π⁰ 的两个光子分开多大的角
+ * - μ 子停下来以后会衰变出一个电子，一两微秒后再亮起一个暗暗的毛环——有一半的 μ 子事件有这一声「回响」
+ */
 export function eventFor(key: string, category: string, tank: Tank): Event {
   const ring = RING_OF[category] ?? 'mu';
   const h = (s: string) => hash(key + s);
-  // 顶点在罐子里面（离壁远一点），方向大致朝外、偏一点上下
   const rr = Math.sqrt(h('r')) * R * 0.55;
   const ra = h('a') * Math.PI * 2;
   const v: V = [Math.sin(ra) * rr, (h('y') - 0.5) * HALF_H * 1.1, Math.cos(ra) * rr];
   const az = h('d') * Math.PI * 2;
   const el = (h('e') - 0.5) * 0.7;
   const d1 = norm([Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)]);
-  const dirs: V[] = [d1];
+  const beta = ring === 'low' ? 0.97 + h('b') * 0.03 : 0.8 + h('b') * 0.2;
+  const angle = Math.acos(Math.min(1, 1 / (N_WATER * beta)));
+  const sharp = ring === 'mu' ? 0.012 + h('s') * 0.014 : ring === 'e' ? 0.055 + h('s') * 0.05 : ring === 'pi0' ? 0.04 + h('s') * 0.04 : 0.05;
+  const fill = ring === 'mu' ? 0.15 + h('f') * 0.85 : 0;
+  const dirs: { d: V; angle: number; sigma: number; delay: number; weight: number }[] = [{ d: d1, angle, sigma: sharp, delay: 0, weight: 1 }];
+  let second: number | undefined;
   if (ring === 'pi0') {
+    second = 0.45 + h('o') * 0.5;
     const perp = norm(cross(d1, [0, 1, 0]));
-    dirs.push(norm(rotate(d1, rotate(perp, d1, h('p') * Math.PI * 2), 0.6 + h('o') * 0.25)));
+    const d2 = norm(rotate(d1, rotate(perp, d1, h('p') * Math.PI * 2), second));
+    dirs.push({ d: d2, angle: Math.acos(1 / (N_WATER * (0.95 + h('b2') * 0.05))), sigma: sharp * 1.1, delay: 0.05, weight: 0.85 });
   }
-  const sigma = ring === 'mu' ? 0.018 : ring === 'e' ? 0.075 : ring === 'pi0' ? 0.06 : 0.05;
-  const hits: Event['hits'] = [];
+  const echo = ring === 'mu' && h('echo') < 0.5;
+  if (echo) {
+    // 衰变电子：方向随机，毛、暗、晚
+    const ea = h('ea') * Math.PI * 2;
+    const ee = (h('ee') - 0.5) * 1.2;
+    dirs.push({ d: norm([Math.sin(ea) * Math.cos(ee), Math.sin(ee), Math.cos(ea) * Math.cos(ee)]), angle: CHERENKOV, sigma: 0.09, delay: 1.1, weight: 0.38 });
+  }
+  const raw: { i: number; w: number; dist: number; open: number; extra: number }[] = [];
   let dmin = Infinity;
   let dmax = 0;
-  const raw: { i: number; w: number; dist: number }[] = [];
   for (let i = 0; i < tank.count; i++) {
     const p: V = [tank.pos[i * 3], tank.pos[i * 3 + 1], tank.pos[i * 3 + 2]];
     const n: V = [tank.normal[i * 3], tank.normal[i * 3 + 1], tank.normal[i * 3 + 2]];
@@ -132,24 +156,42 @@ export function eventFor(key: string, category: string, tank: Tank): Event {
     const dist = Math.hypot(...toP);
     const u = norm(toP);
     if (dot(u, n) > -0.05) continue; // 光要迎面打到管子上
-    let w = 0;
-    for (const d of dirs) {
-      const ang = Math.acos(Math.min(1, Math.max(-1, dot(u, d))));
-      const dev = ang - CHERENKOV;
-      w = Math.max(w, Math.exp(-(dev * dev) / (2 * sigma * sigma)));
-      // μ 子一路都在发光：环里面也落着光，越靠外越亮
-      if (ring === 'mu' && ang < CHERENKOV) w = Math.max(w, 0.22 * (ang / CHERENKOV) ** 2);
+    let best = 0;
+    let open = 1;
+    let extra = 0;
+    for (const r of dirs) {
+      const ang = Math.acos(Math.min(1, Math.max(-1, dot(u, r.d))));
+      const dev = ang - r.angle;
+      let w = Math.exp(-(dev * dev) / (2 * r.sigma * r.sigma)) * r.weight;
+      // μ 子一路都在发光：环里面也落着光，径迹越长越满
+      if (ring === 'mu' && r.delay === 0 && ang < r.angle) w = Math.max(w, fill * 0.32 * (ang / r.angle) ** 1.5);
+      if (r.delay > 0.5 && hash(`${key}${i}x`) < 0.45) w *= 0.25;
+      if (w > best) {
+        best = w;
+        open = Math.min(ang / r.angle, 1);
+        extra = r.delay;
+      }
     }
-    // 电子的簇射：毛一点，随机丢掉一些
-    if (ring === 'e' && hash(`${key}${i}e`) < 0.35) w *= 0.3;
-    // 低能电子：只有零星的几十颗
-    if (ring === 'low') w = hash(`${key}${i}l`) < 0.16 ? w * (0.5 + hash(`${key}${i}m`) * 0.5) : 0;
-    if (w < 0.1) continue;
-    raw.push({ i, w, dist });
+    if (ring === 'e' && hash(`${key}${i}e`) < 0.35) best *= 0.3;
+    if (ring === 'low') best = hash(`${key}${i}l`) < 0.16 ? best * (0.5 + hash(`${key}${i}m`) * 0.5) : 0;
+    if (best < 0.1) continue;
+    raw.push({ i, w: best, dist, open, extra });
     dmin = Math.min(dmin, dist);
     dmax = Math.max(dmax, dist);
   }
-  // 光到得有先有后：离顶点越远越晚（放慢了很多倍，好看得见）
-  for (const r of raw) hits.push({ i: r.i, w: r.w, delay: dmax > dmin ? ((r.dist - dmin) / (dmax - dmin)) * 0.28 : 0 });
-  return { ring, center: hitWall(v, d1), hits };
+  // 锥从中间张开：越靠环心的越早亮，环边最后到；再加上光在水里走的先后
+  const hits = raw.map((r) => {
+    const tof = dmax > dmin ? (r.dist - dmin) / (dmax - dmin) : 0;
+    return { i: r.i, w: r.w, delay: r.extra + r.open * 0.45 + tof * 0.15, tint: Math.min(1, r.open * 0.7 + tof * 0.3) };
+  });
+  return { ring, center: hitWall(v, d1), sig: { angle: (angle * 180) / Math.PI, sharp, fill, second, echo }, hits };
+}
+
+/** 事件图（展开的罐壁 + 上下两个盖子，超级神冈的事件显示就是这样画的）上的坐标：0..1 */
+export function displayXY(tank: Tank, i: number): [number, number, 'wall' | 'top' | 'bottom'] {
+  const x = tank.pos[i * 3];
+  const y = tank.pos[i * 3 + 1];
+  const z = tank.pos[i * 3 + 2];
+  if (Math.abs(Math.abs(y) - HALF_H) < 1e-3 && Math.hypot(x, z) < R - 0.1) return [x / R, z / R, y > 0 ? 'top' : 'bottom'];
+  return [(Math.atan2(x, z) + Math.PI) / (Math.PI * 2), (HALF_H - y) / (2 * HALF_H), 'wall'];
 }
