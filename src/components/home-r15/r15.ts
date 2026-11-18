@@ -1,11 +1,11 @@
 /**
- * PROTOTYPE（首页第十四轮）：只给 ?variant= 选中的那一版启动脚本，切换时先停掉上一版。
+ * PROTOTYPE（首页第十五轮）：只给 ?variant= 选中的那一版启动脚本，切换时先停掉上一版。
  */
 import { currentVariant, showCurrentVariant } from '../prototype/variants';
-import { mountKamioka } from './kamioka';
+import { mountChoreo } from './choreo';
 
 const MOUNT: Record<string, ((root: HTMLElement) => () => void) | undefined> = {
-  A: mountKamioka,
+  A: mountChoreo,
 };
 let stop: (() => void) | undefined;
 let applied: string | undefined;
