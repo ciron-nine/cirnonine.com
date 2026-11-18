@@ -1,12 +1,12 @@
 ---
 /**
- * PROTOTYPE（首页第十三轮）：夜航海图——每条记录是一盏灯，按自己的灯质闪。
- * A 夜航海图；「现行」是 main 上现在的首页，放在一起对比。
- * ?variant=A|0 切换，开发环境底部有切换条；?sample=1 用示意的封面颜色。
+ * PROTOTYPE（首页第十四轮）：神冈的水池——每条记录是一次事件，在金色的管子墙上亮起一圈蓝色的切伦科夫光。
+ * A 神冈；「现行」是 main 上现在的首页，放在一起对比。
+ * ?variant=A|0 切换，开发环境底部有切换条。
  */
 import PrototypeSwitcher from '../components/prototype/PrototypeSwitcher.astro';
-import RecordsIsland from '../components/home-r13/RecordsIsland.astro';
-import Nautical from '../components/home-r13/Nautical.astro';
+import RecordsIsland from '../components/home-r14/RecordsIsland.astro';
+import Kamioka from '../components/home-r14/Kamioka.astro';
 import Shell from '../components/shell/Shell.astro';
 import StarChart from '../components/home/StarChart.astro';
 import StarTable from '../components/home/StarTable.astro';
@@ -21,8 +21,8 @@ const chart = starChart(data);
   <main id="main" data-prototype-variants>
     <h1 class="visually-hidden">cirnonine</h1>
     <RecordsIsland data={data} />
-    <div data-variant="A" data-variant-name="夜航海图">
-      <Nautical data={data} />
+    <div data-variant="A" data-variant-name="神冈">
+      <Kamioka data={data} />
     </div>
     <div data-variant="0" data-variant-name="现行（main 上的首页）" hidden>
       <div class="home" data-home>
@@ -38,7 +38,7 @@ const chart = starChart(data);
 
 <script>
   import '../components/home/home';
-  import '../components/home-r13/r13';
+  import '../components/home-r14/r14';
 </script>
 
 <style is:global>
@@ -53,7 +53,7 @@ const chart = starChart(data);
     color-scheme: light;
   }
 
-  /* PROTOTYPE：夜航海图是暗的，外壳跟着用深色那一套 */
+  /* PROTOTYPE：神冈的水罐是暗的，外壳跟着用深色那一套 */
   :root:has([data-variant='A']:not([hidden])) {
     color-scheme: dark;
   }
